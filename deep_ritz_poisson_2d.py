@@ -694,7 +694,7 @@ def main():
     params["gamma_dec"] = 0.5
     #Termination
     params["outer_iters"] = 200
-    params["tol_gmap"] = 1e-3 # scaled: tol_xprox = lr_theta * tol_gmap
+    params["tol_gmap"] = 0.3 # scaled: tol_xprox = lr_theta * tol_gmap
     params["need_consec"] = 5 # consecutive satisfaction required
     #Logging/plotting
     params["writeStep"] = 1
