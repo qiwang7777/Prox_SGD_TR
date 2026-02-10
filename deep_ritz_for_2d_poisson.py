@@ -585,10 +585,14 @@ def trustregion_step_SPG2(x, val,grad, dgrad, phi, problem, params, cnt):
         g0s    = problem.pvector.dot(g0_primal,s)
         phinew = problem.obj_nonsmooth.value(x1)
         alpha0 = -(g0s + phinew - phiold) / sHs
-        if sHs <= params['safeguard']: 
-          alpha = alphamax
+        if (not np.isfinite(sHs)) or (abs(sHs) <= 1e-14):
+            alpha = alphamax
         else:
-          alpha = np.minimum(alphamax,alpha0)
+            alpha = np.minimum(alphamax, alpha0)
+        #if sHs <= params['safeguard']: 
+        #  alpha = alphamax
+        #else:
+        #  alpha = np.minimum(alphamax,alpha0)
         ## Update iterate
         if (alpha == 1):
           x0     = x1
@@ -752,6 +756,11 @@ def trustregion(x0, Deltai, problem, params):
 
         # accept/reject
         aRed = (val + phi) - (valnew + phinew)
+        pRed_val = float(pRed)
+        if pRed_val < 1e-14 or not np.isfinite(pRed_val):
+            params['delta'] = max(params['deltamin'],params['gamma1'] * params['delta'])
+            problem.obj_smooth.update(x,'reject')
+            continue
         if pRed > 0 :
             rho = aRed/pRed
         else:
@@ -1064,7 +1073,7 @@ if __name__ == "__main__":
         ngrid=32,
         beta=1e-6,
         delta0=1e-1,
-        maxit=500,
+        maxit=1300,
         device=device,
     )
 
