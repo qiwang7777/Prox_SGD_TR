@@ -235,7 +235,7 @@ class PoissonCompositeObjective:
         self.mu_I = float(mu_I)
 
     def update(self, theta, flag: str):
-        # you can add caching later if you want
+        
         self._last_theta = None
 
     # ---------------- helpers ----------------
@@ -442,7 +442,7 @@ class PoissonCompositeObjective:
         ONLY for curvature (HessVec). Everything else unchanged.
         """
         with torch.enable_grad():
-            # --- ONLY CHANGE: use smooth J and smooth J^T here ---
+            # ---  use smooth J and smooth J^T here ---
             Jv = self.apply_Jf_functorch_smooth(theta, v)  # (M,)
 
             N = self.xy.shape[0]
@@ -467,7 +467,7 @@ class PoissonCompositeObjective:
             Hz_u    = torch.zeros_like(Jv_u)
             Hz      = torch.cat([Hz_grad.reshape(-1), Hz_u.reshape(-1)], dim=0)
 
-            # --- ONLY CHANGE: use smooth J^T here ---
+            # ---  use smooth J^T here ---
             hv = self.apply_JfT_functorch_smooth(theta, Hz)
 
         if self.mu_I != 0.0:
@@ -1039,7 +1039,7 @@ def trustregion(x0, Deltai, problem, params):
         cnt['nproxhist'].append(cnt['nprox'])
         cnt['timehist'].append(time.time() - start_time)
 
-        # stopping (this is the ONLY place we terminate)
+        # stopping 
         if (gnorm <= gtol) or (snorm < stol) or (i >= params['maxit']):
             if gnorm <= gtol:
                 flag = 0
@@ -1213,7 +1213,7 @@ def train_poisson_with_TR(
         "beta": beta
     }
 
-    # IMPORTANT: pass kappa_fn, and set mu_I=1e-4 (your +1e-4 I)
+    # IMPORTANT: pass kappa_fn, and set mu_I=1e-4 
     obj_smooth = PoissonCompositeObjective(
         model=model,
         xy=xy,
@@ -1444,5 +1444,3 @@ if __name__ == "__main__":
     plot_solution_and_error(model, n=121, device=device)
     plot_tr_history(cnt)
      
-
-    
