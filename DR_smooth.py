@@ -5,6 +5,8 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import math
 from collections import OrderedDict
+import torch.nn.functional as F
+from torch.func import functional_call, grad
 # -------------------------
 # 1) Parameters Setups
 # -------------------------
@@ -61,6 +63,36 @@ class TorchDictVector:
         for k in self.td.keys():
             self.td[k] = self.td[k] - other.td[k]
         return self
+    
+    def randn_like(self):
+        return TorchDictVector({k: torch.randn_like(v) for k, v in self.td.items()})
+    
+    def dot(self, other) -> float:
+        s = 0.0
+        for k, v in self.td.items():
+            s += torch.sum(v * other.td[k]).item()
+        return float(s)
+    
+    def axpy(self, a: float, x: "TorchDictVector"):
+        for k in self.td.keys():
+            self.td[k] = self.td[k] + a * x.td[k]
+        return self
+    
+    def scal(self, a: float):
+        for k in self.td.keys():
+            self.td[k] = a * self.td[k]
+        return self
+    
+    def norm(self) -> float:
+        s = 0.0
+        for v in self.td.values():
+            s += torch.sum(v * v).item()
+        return float(s ** 0.5)
+    def normalize_(self, eps: float = 1e-16):
+        n = self.norm()
+        if n < eps:
+            return self
+        return self.scal(1.0 / n)
 
 # Helpers for TorchDictVector
 def td_dot(x: TorchDictVector, y: TorchDictVector) -> float:
@@ -114,7 +146,7 @@ def set_default_parameters(name):
     # Stopping tolerances
     params['maxit']   = 200
     params['reltol']  = False
-    params['gtol']    = 1e-4
+    params['gtol']    = 1.8e-3
     params['stol']    = 1e-12
     params['ocScale'] = params['t']
 
@@ -277,6 +309,16 @@ class PoissonCompositeObjective:
         for name, p in self.model.named_parameters():
             grad_td[name] = p.grad.detach().clone()
         return TorchDictVector(grad_td), 0.0
+    
+    def _u_smooth(self, params, xy, smooth: bool):
+        buffers = dict(self.model.named_buffers())
+        #if smooth:
+        #    return functional_call(self.model, (params, buffers), (xy,), kwargs={"smooth": smooth})
+        #else:
+        #    return functional_call(self.model, (params, buffers), (xy,))
+        return functional_call(self.model, (params, buffers), (xy,), kwargs={"smooth": bool(smooth)})
+            
+        
 
     # =========================================================
     # Functorch-safe f_of_params for JVP/VJP
@@ -305,6 +347,30 @@ class PoissonCompositeObjective:
         u = functional_call(self.model, params, (xy,))  # (N,1)
 
         return self._pack_f(grad_u, u)
+    def _smooth_act(self,x):
+        """
+        beta controls how close to ReLu, the larger, the closer
+        """
+        beta = getattr(self, "smooth_beta", 50.0)
+        return F.softplus(beta * x) / beta
+    def _f_of_params_functorch_smooth(self, params):
+        """
+        Returns z = [vec(grad u); vec(u)] computed in a functorch-safe way.
+
+        Key: Do NOT call requires_grad_() or torch.autograd.grad inside a transformed fn.
+        Use torch.func.grad + vmap instead.
+        """
+        xy = self.xy 
+        u = self._u_smooth(params, xy, True)
+        
+        grad_u = grad(lambda x: self._u_smooth(params, x, True).sum())(xy)
+        
+        
+        z = torch.cat([grad_u.reshape(-1), u.reshape(-1)], dim = 0)
+        return z
+            
+            
+       
 
     def apply_Jf_functorch(self, theta, s):
         """
@@ -333,6 +399,33 @@ class PoissonCompositeObjective:
         for name, _ in self.model.named_parameters():
             hv_td[name] = grads[name].detach().clone()
         return TorchDictVector(hv_td)
+    def apply_Jf_functorch_smooth(self, theta, s):
+        """
+        Using softplus as the smoothing of ReLu for approximation of J and will use for Hessian later
+        """
+        from torch.func import jvp
+        params0 = {k: theta.td[k] for k, _ in self.model.named_parameters()}
+        tang = {k: s.td[k] for k, _ in self.model.named_parameters()}
+        z0, Jd = jvp(self._f_of_params_functorch_smooth, (params0,), (tang,))
+        return Jd
+    
+    def apply_JfT_functorch_smooth(self, theta, cotangent_z):
+        """
+        Exact VJP: J_f(theta)^T cotangent_z -> TorchDictVector
+        """
+        from torch.func import vjp
+
+        params0 = {k: theta.td[k] for k, _ in self.model.named_parameters()}
+
+        z0, pullback = vjp(self._f_of_params_functorch_smooth, params0)
+        grads = pullback(cotangent_z)[0]
+
+        hv_td = OrderedDict()
+        for name, _ in self.model.named_parameters():
+            hv_td[name] = grads[name].detach().clone()
+        return TorchDictVector(hv_td)
+    
+        
 
     # ---------------- predicted reduction ----------------
     def predicted_reduction(self, theta, s):
@@ -341,20 +434,16 @@ class PoissonCompositeObjective:
             Jd = self.apply_Jf_functorch(theta, s)
             pred = self.h(z) - self.h(z + Jd)
         return float(pred.detach().cpu().item())
-
-    # ---------------- Gauss-Newton HessVec in parameter-space ----------------
+    #---------------- Smoothing Hessian ----------------
     def hessVec(self, v, theta, gradTol=1e-12):
         """
         Bv = J_f^T [∇²h(z)] J_f v + mu_I*v
-
-        For Ritz energy:
-          h(z)=mean_i ( 0.5*kappa_i||p_i||^2 - g_i*u_i )
-        => ∇²h wrt z:
-           - grad block: (1/N) * kappa_i * I_d  (if mean)
-           - u block: 0
+        where J_f, J_f^T are computed using a *smoothed* ReLU surrogate
+        ONLY for curvature (HessVec). Everything else unchanged.
         """
         with torch.enable_grad():
-            Jv = self.apply_Jf_functorch(theta, v)  # (M,)
+            # --- ONLY CHANGE: use smooth J and smooth J^T here ---
+            Jv = self.apply_Jf_functorch_smooth(theta, v)  # (M,)
 
             N = self.xy.shape[0]
             d = self.xy.shape[1]
@@ -362,7 +451,6 @@ class PoissonCompositeObjective:
             if kap.ndim == 1:
                 kap = kap.reshape(-1, 1)
 
-            # weights => scale per point for grad-block
             if self.weight is None:
                 scale = (1.0 / float(N)) * kap
             else:
@@ -372,19 +460,52 @@ class PoissonCompositeObjective:
                     ww = self.weight.reshape(-1, 1) if self.weight.ndim == 1 else self.weight
                     scale = ww * kap
 
-            # apply Hessian of h in z-space
             Jv_grad = Jv[:N * d].reshape(N, d)
-            Jv_u = Jv[N * d:]
+            Jv_u    = Jv[N * d:]
+
             Hz_grad = scale * Jv_grad
-            Hz_u = torch.zeros_like(Jv_u)
+            Hz_u    = torch.zeros_like(Jv_u)
+            Hz      = torch.cat([Hz_grad.reshape(-1), Hz_u.reshape(-1)], dim=0)
 
-            Hz = torch.cat([Hz_grad.reshape(-1), Hz_u.reshape(-1)], dim=0)
-
-            hv = self.apply_JfT_functorch(theta, Hz)
+            # --- ONLY CHANGE: use smooth J^T here ---
+            hv = self.apply_JfT_functorch_smooth(theta, Hz)
 
         if self.mu_I != 0.0:
             hv = hv + (self.mu_I * v)
         return hv, 0.0
+    
+    def gradient_gn_smooth(self, theta):
+        params0 = {k: theta.td[k] for k,_ in self.model.named_parameters()}
+        z = self._f_of_params_functorch_smooth(params0)
+        
+        N, d = self.xy.shape
+        grad_u, u = self._unpack_f(z)
+        kap = self.kappa_fn(self.xy)
+        if kap.ndim == 1:
+            kap = kap.reshape(-1,1)
+        if self.weight is None:
+            scale = (1.0/float(N)) * kap
+        else:
+            if self.weight.numel() == 1:
+                scale = self.weight * kap
+            else:
+                ww = self.weight.reshape(-1, 1) if self.weight.ndim == 1 else self.weight
+                scale = ww * kap
+        dh_dgrad = (scale * grad_u).reshape(-1)
+        if self.weight is None:
+            dh_du = (-(1.0/float(N)) * self.g).reshape(-1)
+        else:
+            if self.weight.numel() == 1:
+                dh_du = (-(self.weight) * self.g).reshape(-1)
+            else:
+                ww = self.weight.reshape(-1, 1) if self.weight.ndim == 1 else self.weight
+                dh_du = (-(ww)*self.g).reshape(-1)
+        cotangent = torch.cat([dh_dgrad, dh_du], dim=0)
+        g = self.apply_JfT_functorch_smooth(theta, cotangent)
+        return g
+    
+
+    
             
 # -------------------------
 # 2) ReLU network
@@ -439,12 +560,27 @@ class PoissonNet(nn.Module):
     u_theta(x) = b(x) * com_theta(x)
     so Dirichlet BC u=0 is satisfied automatically.
     """
-    def __init__(self, in_dim=2, width=64, depth=3, activation="tanh"):
+    def __init__(self, in_dim=2, width=64, depth=3, activation="relu"):
         super().__init__()
         self.com = MLP(in_dim=in_dim, width=width, depth=depth, out_dim=1, activation=activation)
+        self.smooth_beta = 50.0
 
-    def forward(self, xy):
-        return b_factor(xy) * self.com(xy) 
+    def forward(self, xy, smooth = False):
+        if not smooth:
+            return b_factor(xy) * self.com(xy) 
+        else:
+            return b_factor(xy) *self.forward_smooth(xy) 
+    
+    def forward_smooth(self, xy):
+        h = xy
+        beta = self.smooth_beta
+        for layer in self.com.net:
+            if isinstance(layer, nn.ReLU):
+                h = F.softplus(beta * h) / beta
+            else:
+                h = layer(h)
+        return h
+        
     
 # -------------------------
 # 3) Problem Class
@@ -689,10 +825,10 @@ def trustregion_step_SPG2(x, val,grad, dgrad, phi, problem, params, cnt):
         g0s    = problem.pvector.dot(g0_primal,s)
         phinew = problem.obj_nonsmooth.value(x1)
         alpha0 = -(g0s + phinew - phiold) / sHs
-        if (not np.isfinite(sHs)) or (abs(sHs) <= 1e-14):
+        if (not np.isfinite(sHs)) or (sHs <= 1e-14):
             alpha = alphamax
         else:
-            alpha = np.minimum(alphamax, alpha0)
+            alpha = max(0.0, np.minimum(alphamax, alpha0))
         #if sHs <= params['safeguard']: 
         #  alpha = alphamax
         #else:
@@ -749,7 +885,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault('initProx', False)
     params.setdefault('t', 1.0)
     params.setdefault('maxit', 100)
-    params.setdefault('gtol', 1e-6)
+    params.setdefault('gtol', 1.8e-3)
     params.setdefault('stol', 1e-12)
     params.setdefault('ocScale', 1.0)
     params.setdefault('atol', 1e-4)
@@ -853,8 +989,10 @@ def trustregion(x0, Deltai, problem, params):
         # accept/reject
         aRed = (val + phi) - (valnew + phinew_true)
         pRed_val = float(pRed)
+        
         print("trial diagnostics:","val=", val, "phi=", phi,"valnew=", valnew, "phi_true=", phinew_true,"pRed=", pRed, "aRed=", aRed)
-        if pRed_val < 1e-14 or not np.isfinite(pRed_val):
+        pred_floor = max(1e-12, 1e-10 * max(1.0, abs(val + phi)))
+        if pRed_val < pred_floor:
             params['delta'] = max(params['deltamin'],params['gamma1'] * params['delta'])
             problem.obj_smooth.update(x,'reject')
             continue
@@ -986,7 +1124,8 @@ def compute_gradient(x, problem, params, cnt):
         gtol = min(params['maxGradTol'], scale0 * params['delta'])
         gerr = gtol + 1
         while gerr > gtol:
-            grad, gerr = problem.obj_smooth.gradient(x, gtol)
+            grad = problem.obj_smooth.gradient_gn_smooth(x)
+            gerr = 0
             cnt['ngrad'] += 1
             dgrad = problem.dvector.dual(grad)
             pgrad = problem.obj_nonsmooth.prox(x - params['ocScale'] * dgrad, params['ocScale'])
@@ -1180,22 +1319,130 @@ def plot_tr_history(cnt):
         axes[2].set_yscale("log")
 
     plt.show()
+    
+#derivative check
+@torch.no_grad()
+def directional_fd_value(obj, theta, v, eps):
+    th_p = theta.clone()
+    th_m = theta.clone()
+    th_p.axpy(eps, v)
+    th_m.axpy(-eps, v)
+    Jp,_ = obj.value(th_p)
+    Jm,_ = obj.value(th_m)
+    return (Jp - Jm) / (2.0 * eps)
+
+def directional_grad_dot(obj, theta, v):
+    g,_ = obj.gradient(theta)
+    return g.dot(v)
+
+def grad_check(obj, theta, ntests = 10, eps_list=(1e-2, 3e-3, 1e-3, 3e-4, 1e-4)):
+    torch.set_default_dtype(torch.float64)
+    for t in range(ntests):
+        v = theta.randn_like()
+        v.normalize_()
+        gTv = directional_grad_dot(obj, theta, v)
+        print(f"\nTest {t}: g^T v = {gTv:+.6e}")
+        for eps in eps_list:
+            fd = directional_fd_value(obj, theta, v, eps)
+            relerr = abs(fd - gTv) / max(1.0, abs(fd), abs(gTv))
+            print(f" eps={eps: >8.1e} FD={fd:+.6e} relerr={relerr:.3e}")
+ 
+#Hessian check
+@torch.no_grad()
+def directional_fd_grad(obj_smooth, theta, v, eps):
+    th_p = theta.clone()
+    th_m = theta.clone()
+    th_p.axpy(eps, v)
+    th_m.axpy(-eps, v)
+    gp,_ = obj_smooth.gradient(th_p)
+    gm,_ = obj_smooth.gradient(th_m)
+    out = gp.clone()
+    out.axpy(-1.0, gm)
+    out.scal(1.0 / (2.0 *eps))
+    return out
+
+def directional_fd_grad_gn(obj, theta, v, eps):
+    th_p = theta.copy()
+    th_m = theta.copy()
+    th_p.axpy(eps, v)
+    th_m.axpy(-eps, v)
+    gp = obj.gradient_gn_smooth(th_p)
+    gm = obj.gradient_gn_smooth(th_m)
+    out = gp.copy()
+    out.axpy(-1.0, gm)
+    out.scal(1.0/(2.0*eps))
+    return out
+    
+
+def hv_check(obj_smooth, theta, ntests = 10, eps_list = (1e-2, 3e-3, 1e-3, 3e-4, 1e-4), gradTol = 1e-12):
+    torch.set_default_dtype(torch.float64)
+    for t in range(ntests):
+        v = theta.randn_like()
+        v.normalize_()
+        Hv, _ = obj_smooth.hessVec(v, theta, gradTol = gradTol)
+        print(f"\nTest {t}: ||Hv|| = {Hv.norm():.6e}")
+        for eps in eps_list:
+            fdHv = directional_fd_grad_gn(obj_smooth, theta, v, eps)
+            num = (fdHv.clone().axpy(-1.0, Hv) or fdHv)
+            diff = fdHv.clone()
+            diff.axpy(-1.0, Hv)
+            relerr = diff.norm() / max(1.0, fdHv.norm(), Hv.norm())
+            print(f" eps={eps:>8.1e} ||FD-Hv||/scale={relerr:.3e}")
+            
+            
+@torch.no_grad()
+def gn_quadratic_form_check(obj, theta, ntests=5, eps_list=(1e-2, 3e-3, 1e-3, 3e-4, 1e-4)):
+    params0 = {k: theta.td[k] for k, _ in obj.model.named_parameters()}
+    z = obj._f_of_params_functorch_smooth(params0).detach()
+    for t in range(ntests):
+        v = theta.randn_like().normalize_()
+        Jv = obj.apply_Jf_functorch_smooth(theta, v).detach()
+        Bv, _ = obj.hessVec(v, theta)
+        vTBv = v.dot(Bv)
+        print(f"\nTest {t}: v^T Bv ={vTBv:+.6e}")
+        for eps in eps_list:
+            hp = obj.h(z + eps * Jv)
+            h0 = obj.h(z)
+            hm = obj.h(z - eps * Jv)
+            fd = (hp - 2.0*h0 + hm)/ (eps**2)
+            fd = float(fd.detach().cpu().item())
+            relerr = abs(fd - vTBv) / (max(1.0, abs(fd), abs(vTBv)))
+            print(f" eps={eps:>8.1e} FD={fd:+.6e} relerr = {relerr:.3e}")
+    
 
 
 if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    width, depth, ngrid = 32, 2, 32
+    beta = 0.0
+    model = PoissonNet(width = width, depth = depth).to(device)
+    xy = make_training_points_grid(ngrid, device = device)
+    g = compute_g_from_u_star(xy)
+    var = {"useEuclidean": False, "beta": beta}
+    obj_smooth = PoissonCompositeObjective(model = model, xy= xy, g = g, kappa_fn = kappa_xy, weight = None, device = device, mu_I = 1e-4)
+    x0 = vector_from_model(model)
+    #Derivative check and Hessian check
+    print("\n ==== GRAD CHECK at x0 ====")
+    grad_check(obj_smooth, x0, ntests=5)
+    print("\n ==== HV CHECK at x0 ====")
+    gn_quadratic_form_check(obj_smooth, x0, ntests = 3)
+    
 
     model, x_opt, cnt = train_poisson_with_TR(
-        width=32,
-        depth=2,
-        ngrid=32,
-        beta=0.0,
+        width=width,
+        depth=depth,
+        ngrid=ngrid,
+        beta=beta,
         delta0=1e-1,
-        maxit=200,
+        maxit= 700,
         device=device,
     )
+    
 
     plot_solution_and_error(model, n=121, device=device)
     plot_tr_history(cnt)
      
+
+    
