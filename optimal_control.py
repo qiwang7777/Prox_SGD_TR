@@ -10,7 +10,17 @@ import math
 from collections import OrderedDict
 import torch.nn.functional as F
 from torch.func import functional_call
-# -------------------------------
+
+plt.rcParams.update({
+    "text.usetex": False,
+    "font.family": "serif",
+    "font.serif": ["DejaVu Serif"],
+    "font.size": 14,
+    "axes.labelsize": 14,
+    "axes.titlesize": 14,
+    "legend.fontsize": 12,
+})
+#------------------------------
 # 0) Nonlinearity and exact data
 # -------------------------------
 
@@ -702,7 +712,7 @@ class ReducedSemilinearOCObjective:
         nonlinearity: nn.Module,
         weight=None,
         device="cpu",
-        fd_eps_hess=1e-6,
+        fd_eps_hess=1e-4,
         value_cold_start=True,
         grad_cold_start=False,
     ):
@@ -857,6 +867,7 @@ class ReducedSemilinearOCObjective:
 
         hv = (g_plus - g_base) * (1.0 / eps)
         return hv, 0.0
+    
 
     def relative_L2_error_control(self, theta, u_star_fn):
         load_vector_into_model(theta, self.control_model)
@@ -888,7 +899,7 @@ def set_default_parameters(name):
     # Stopping tolerances
     params['maxit']   = 200
     params['reltol']  = False
-    params['gtol']    = 9e-3
+    params['gtol']    = 1.1e-2
     params['stol']    = 1e-12
     params['ocScale'] = params['t']
 
@@ -1137,7 +1148,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault('initProx', False)
     params.setdefault('t', 1.0)
     params.setdefault('maxit', 500)
-    params.setdefault('gtol', 9e-3)
+    params.setdefault('gtol', 1.1e-2)
     params.setdefault('stol', 1e-9)
     params.setdefault('ocScale', 1.0)
     params.setdefault('atol', 1e-4)
@@ -1500,7 +1511,7 @@ def train_semilinear_oc_reduced_TR(
         alpha=alpha,
         nonlinearity=nonlinearity,
         device=device,
-        fd_eps_hess=1e-6,
+        fd_eps_hess=1e-4,
         value_cold_start=True,
         grad_cold_start=False,
     )
@@ -1636,4 +1647,4 @@ if __name__ == "__main__":
     for k,v in stats.items():
         print(f"{k}:{v:.6e}" if isinstance(v,float) else f"{k}:{v}")
     
-    plot_oc_results_reduced(problem, x_opt)  
+    plot_oc_results_reduced(problem, x_opt)   
