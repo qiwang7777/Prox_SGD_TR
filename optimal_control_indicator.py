@@ -5,6 +5,7 @@ import time
 import matplotlib.pyplot as plt
 import math
 from collections import deque
+from PIL import Image
 
 # ============================================================
 # 0) Global settings
@@ -1190,10 +1191,11 @@ def plot_solution_and_error(problem, x_opt, X, Y, xy, g_d, alpha, device="cpu"):
 
     y = y_full.reshape(n, n).detach().cpu().numpy()
     u = u_full.reshape(n, n).detach().cpu().numpy()
-    gd = g_d.reshape(n, n).detach().cpu().numpy()
+    yd = g_d.reshape(n, n).detach().cpu().numpy()
+    yex = y_star(xy).reshape(n,n).detach().cpu().numpy()
 
     uex = u_star(xy, alpha).reshape(n, n).detach().cpu().numpy()
-    yerr = y - gd
+    yerr = y - yex
     uerr = u - uex
 
     Xn = X.detach().cpu().numpy()
@@ -1201,7 +1203,7 @@ def plot_solution_and_error(problem, x_opt, X, Y, xy, g_d, alpha, device="cpu"):
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 9), constrained_layout=True)
 
-    im0 = axes[0, 0].pcolormesh(Xn, Yn, gd, shading="auto")
+    im0 = axes[0, 0].pcolormesh(Xn, Yn, yex, shading="auto")
     axes[0, 0].set_title("desired state $y^*$")
     fig.colorbar(im0, ax=axes[0, 0])
 
@@ -1321,4 +1323,3 @@ if __name__ == "__main__":
 
     plot_solution_and_error(problem, x_opt, X, Y, xy, g_d, alpha, device=device)
     plot_tr_history(cnt)
-     
