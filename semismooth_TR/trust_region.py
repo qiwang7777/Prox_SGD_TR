@@ -2,7 +2,8 @@ import torch
 import numpy as np
 import copy
 import time
-from .subsolver import trustregion_step_NCG, trustregion_step_SPG,trustregion_step_SSN, trustregion_step_DOGLEG
+from .subsolver.trustregion_step_NCG import trustregion_step_NCG
+from .subsolver.trustregion_step_SPG2 import trustregion_step_SPG2
 from collections import deque
 
 
