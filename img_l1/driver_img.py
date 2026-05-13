@@ -1,5 +1,5 @@
 import torch
-from semismooth.TR.trust_region import trustregion
+from semismooth_TR.trust_region import trustregion
 import numpy as np
 from .setup_helper import show_results, build_l1_saturation_problem,  build_tv_saturation_problem, build_wavelet_l1_saturation_problem,check_clipping_margin, check_formula_interior, check_smooth_derivatives, plot_tr_performance, make_interior_test_point
 if __name__ == "__main__":
