@@ -6,28 +6,6 @@ from .subsolver.trustregion_step_NCG import trustregion_step_NCG
 from .subsolver.trustregion_step_SPG2 import trustregion_step_SPG2
 from collections import deque
 
-def _print_and_store_errors(obj, x, cnt, i=None):
-    best_updated = False
-
-    if hasattr(obj, "relative_L2_error") and getattr(obj, "x_true", None) is not None:
-        rel = obj.relative_L2_error(x)
-        print("relative L2 error =", rel)
-
-        if rel < cnt.get("best_relL2", np.inf):
-            cnt["best_relL2"] = rel
-            cnt["best_iter"] = 0 if i is None else i
-            best_updated = True
-
-    elif hasattr(obj, "relative_L2_error_control") and hasattr(obj, "relative_L2_error_state"):
-        rel_u = obj.relative_L2_error_control(x)
-        rel_y = obj.relative_L2_error_state(x)
-        print(f"   relL2(control)={rel_u:.3e}, relL2(state)={rel_y:.3e}")
-
-        cnt.setdefault("relL2_control_hist", []).append(rel_u)
-        cnt.setdefault("relL2_state_hist", []).append(rel_y)
-
-    return best_updated
-
 def trustregion(x0, Deltai, problem, params):
     start_time = time.time()
 
@@ -35,7 +13,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault('initProx', False)
     params.setdefault('t', 1.0)
     params.setdefault('maxit', 500)
-    params.setdefault('gtol', 1e-7)
+    params.setdefault('gtol', 1e-3)
     params.setdefault('stol', 1e-9)
     params.setdefault('ocScale', 1.0)
     params.setdefault('atol', 1e-4)
@@ -49,25 +27,35 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault('deltamin', 1e-16)
     params.setdefault('deltamax', 100.0)
     params.setdefault('reltol', False)
+
     params.setdefault('delta_stop', 1e-7)
     params.setdefault('stol_abs', 1e-9)
     params.setdefault('stag_window', 10)
     params.setdefault('ftol_rel', 1e-6)
     params.setdefault('max_reject', 15)
     params.setdefault("nonmono_M", 10)
+
     params.setdefault("pred_abs_tol", 1e-11)
     params.setdefault("pred_rel_tol", 1e-11)
     params.setdefault("pred_small_max", 5)
+
     params.setdefault("useInexactGrad", False)
+    params.setdefault("auto_inexact_grad", False)
+    params.setdefault("scaleGradTol", 1e-2)
+    params.setdefault("maxGradTol", 1e-3)
+    params.setdefault("kink_tau", 5e-3)
+    params.setdefault("grad_match_tol", 0.49)
+    params.setdefault("grad_match_q", 0.90)
+
+    params.setdefault("mu_smooth", 1e-4)
 
     cnt = {
-        'AlgType': f"TR-{params.get('spsolver','NCG')}",
+        'AlgType': f"TR-{params.get('spsolver','SPG2')}",
         'iter': 0,
         'nobj1': 0,
         'ngrad': 0,
         'nobj2': 0,
         'nprox': 0,
-        'nhess': 0,
         'timetotal': 0.0,
         'objhist': [],
         'obj1hist': [],
@@ -80,6 +68,8 @@ def trustregion(x0, Deltai, problem, params):
         'ngradhist': [],
         'nproxhist': [],
         'timehist': [],
+        'valerr': [],
+        'valtol': [],
         'graderr': [],
         'gradtol': []
     }
@@ -91,13 +81,22 @@ def trustregion(x0, Deltai, problem, params):
         cnt['nprox'] += 1
     else:
         x = x0.copy()
-
+        
     best_x = x.copy()
-    cnt["best_relL2"]=np.inf
-    cnt["best_iter"]=0
-    
+    best_relL2 = obj.relative_L2_error(x) if obj.x_true is not None else np.inf
+    cnt["best_relL2"] = best_relL2
+    cnt["best_iter"] = 0
 
     obj.update(x, "init")
+
+    obj.xy_full = obj.xy
+    if hasattr(obj, "g"):
+        obj.g_full = obj.g
+    obj.weight_full = getattr(obj, "weight", None)
+    if hasattr(obj, "V"):
+        obj.V_full = obj.V
+    if hasattr(obj, "dV"):
+        obj.dV_full = obj.dV
 
     rej_count = 0
     small_pred_count = 0
@@ -105,11 +104,12 @@ def trustregion(x0, Deltai, problem, params):
     val_true, _ = obj.value(x, 1e-12)
     cnt['nobj1'] += 1
 
-    if hasattr(obj,"value_model"):
-        val_model,_ = obj.value_model(x,1e-12)
+    if hasattr(obj, "value_model"):
+        val_model, _ = obj.value_model(x, 1e-12)
+        cnt['nobj1'] += 1
     else:
         val_model = val_true
-    cnt["nobj1"] +=1
+
     grad, dgrad, gnorm, cnt = compute_gradient(x, problem, params, cnt)
 
     phi = problem.obj_nonsmooth.value(x)
@@ -119,10 +119,10 @@ def trustregion(x0, Deltai, problem, params):
     Fhist = deque(maxlen=params["nonmono_M"])
     Fhist.append(val_true + phi)
 
-    print(f"TR method using {params.get('spsolver','NCG')} Subproblem Solver")
-    print("  iter    value    gnorm    del    snorm    nobjs    ngrad    nobjn    nprox     iterSP    flagSP")
-    print(f"{0:4d} {0:4d} {val_true+phi:8.6e} {params['delta']:8.6e}  ---      "
-          f"{cnt['nobj1']:6d}      {cnt['ngrad']:6d}      {cnt['nobj2']:6d}      {cnt['nprox']:6d} --- ---")
+    print(f"TR method using {params.get('spsolver','SPG2')} Subproblem Solver")
+    print("  iter    value         gnorm        del          snorm        nobjs    ngrad    nobjn    nprox     iterSP    flagSP")
+    print(f"{0:4d}    {val_true+phi:12.6e}    {gnorm:8.6e}    {params['delta']:8.6e}    ---      "
+          f"{cnt['nobj1']:6d}    {cnt['ngrad']:6d}    {cnt['nobj2']:6d}    {cnt['nprox']:6d}    ---    ---")
 
     cnt['objhist'].append(val_true + phi)
     cnt['obj1hist'].append(val_true)
@@ -137,27 +137,29 @@ def trustregion(x0, Deltai, problem, params):
     cnt['timehist'].append(np.nan)
 
     gtol = params['gtol']
+    stol = params['stol']
     if params['reltol']:
         gtol = params['gtol'] * gnorm
+        stol = params['stol'] * gnorm
 
     for i in range(1, params['maxit'] + 1):
         params['tolsp'] = min(params['atol'], params['rtol'] * (gnorm ** params['spexp']))
         grad, dgrad, gnorm, cnt = compute_gradient(x, problem, params, cnt)
 
-        val_model = val_true
+        if hasattr(obj, "value_model"):
+            val_model, _ = obj.value_model(x, 1e-12)
+        else:
+            val_model = val_true
         cnt['nobj1'] += 1
 
-        solver = params.get("spsolver","NCG").upper()
-        if solver == "SPG2":
-            s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SPG2(x, val_model, grad, dgrad, phi, problem, params, cnt)
-        elif solver == "NCG":
-            s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_NCG(x, val_model, dgrad, phi, problem, params, cnt)
-        elif solver == "DOGLEG":
-            s, norm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_DOGLEG(x, val_model, grad, dgrad, phi, problem, params, cnt)
+        if params.get('spsolver', 'NCG').upper() == 'SPG2':
+            s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SPG2(
+                x, val_model, grad, dgrad, phi, problem, params, cnt
+            )
         else:
-            s,  snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SSN(x, val_model, grad, dgrad, phi, problem, params, cnt)
-            
-
+            s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_NCG(
+                x, val_model, dgrad, phi, problem, params, cnt
+            )
 
         pRed = float(pRed)
         pred_floor = max(
@@ -175,6 +177,7 @@ def trustregion(x0, Deltai, problem, params):
             cnt['timetotal'] = time.time() - start_time
             cnt['iflag'] = 6
             print("Optimization terminated because predicted reduction is tiny repeatedly.")
+            print(f"Total time: {cnt['timetotal']:8.6e} seconds")
             return x, cnt
 
         xnew = x + s
@@ -191,6 +194,11 @@ def trustregion(x0, Deltai, problem, params):
         accept_nm = (valnew_true + phinew_true) <= (Fref - 1e-12)
         accept = (rho >= params['eta1']) and accept_nm
 
+        print("debug:",
+              "aRed=", float(aRed),
+              "pRed=", float(pRed),
+              "rho=", float(rho))
+
         if not accept:
             params['delta'] = max(params['deltamin'], params['gamma1'] * params['delta'])
             obj.update(x, 'reject')
@@ -202,20 +210,26 @@ def trustregion(x0, Deltai, problem, params):
             rej_count = 0
 
             obj.update(x, 'accept')
+
             Facc.append(val_true + phi)
             Fhist.append(val_true + phi)
 
-            if _print_and_store_errors(obj,x,cnt,i):
-                best_x = x.copy
-            print(f"   relL2(control)={relL2u:.3e}, relL2(state)={relL2y:.3e}")
+            relL2 = obj.relative_L2_error(x)
+            print("relative L2 error =", relL2)
+            
+            if relL2 < best_relL2:
+                best_relL2 = relL2
+                best_x = x.copy()
+                cnt["best_relL2"] = best_relL2
+                cnt["best_iter"] = i
 
             if rho > params['eta2']:
                 params['delta'] = min(params['deltamax'], params['gamma2'] * params['delta'])
 
         if i % params['outFreq'] == 0:
-            print(f"{i:4d}    {val_true + phi:8.6e}    {gnorm:8.6e}    {params['delta']:8.6e}    {snorm:8.6e}      "
-                  f"{cnt['nobj1']:6d}     {cnt['ngrad']:6d}       {cnt['nobj2']:6d}     {cnt['nprox']:6d}      "
-                  f"{iter_count:4d}        {iflag:1d}")
+            print(f"{i:4d}    {val_true + phi:12.6e}    {gnorm:8.6e}    {params['delta']:8.6e}    {snorm:8.6e}    "
+                  f"{cnt['nobj1']:6d}    {cnt['ngrad']:6d}    {cnt['nobj2']:6d}    {cnt['nprox']:6d}    "
+                  f"{iter_count:4d}    {iflag:1d}")
 
         cnt['objhist'].append(val_true + phi)
         cnt['obj1hist'].append(val_true)
@@ -230,20 +244,22 @@ def trustregion(x0, Deltai, problem, params):
         cnt['timehist'].append(time.time() - start_time)
 
         delta_stop = params["delta_stop"]
-        stol_abs   = params["stol_abs"]
-        K          = params["stag_window"]
-        ftol_rel   = params["ftol_rel"]
+        stol_abs = params["stol_abs"]
+        K = params["stag_window"]
+        ftol_rel = params["ftol_rel"]
         max_reject = params["max_reject"]
 
         stop_grad = (gnorm <= gtol)
         stop_step = (snorm < stol_abs) and (params["delta"] <= delta_stop)
+        stop_stuck = (params["delta"] <= 10 * delta_stop and rej_count >= max_reject)
+
         stop_stag = False
         if len(Facc) >= K + 1:
-            Fold = Facc[-(K+1)]
+            Fold = Facc[-(K + 1)]
             Fnew = Facc[-1]
             rel_change = abs(Fold - Fnew) / max(1.0, abs(Fnew))
             stop_stag = (rel_change < ftol_rel)
-        stop_stuck = (params["delta"] <= 10 * delta_stop and rej_count >= max_reject)
+
         stop_maxit = (i >= params["maxit"])
 
         if stop_grad or stop_step or stop_stag or stop_stuck or stop_maxit:
@@ -258,7 +274,7 @@ def trustregion(x0, Deltai, problem, params):
                 reason = "objective stagnation"
             elif stop_stuck:
                 flag = 4
-                reason = "trust region stuck"
+                reason = "trust region stuck (delta small + rejections)"
             else:
                 flag = 1
                 reason = "maximum iterations reached"
