@@ -38,6 +38,7 @@ class ReducedSemilinearControlObjective:
         self.newton_maxit = int(newton_maxit)
         self.fd_eps = float(fd_eps)
         self.hess_mode = "full"
+        self.x_true = True
 
         h = 1.0 / (ngrid - 1)
         if weight is None:
@@ -105,14 +106,19 @@ class ReducedSemilinearControlObjective:
             hv.axpy(self.mu_I, v)
 
         return hv, 0.0
+    def value_model(self,x, ftol=1e-12):
+        return self.value(x,ftol)
 
     def relative_L2_error_control(self, x):
         u_ex = u_star(self.xy_int, self.alpha)
         err = torch.sqrt(torch.sum((x.data - u_ex) ** 2) / torch.sum(u_ex ** 2))
         return float(err.item())
+    def relative_L2_error(self,x):
+        return self.relative_L2_error_control(x)
 
     def relative_L2_error_state(self, x):
         y = self.solve_state_cached(x)
         y_ex = self.y_true_int
         err = torch.sqrt(torch.sum((y - y_ex) ** 2) / torch.sum(y_ex ** 2))
         return float(err.item())
+   
