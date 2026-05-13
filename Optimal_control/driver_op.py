@@ -70,7 +70,7 @@ def solve_optimal_control_with_TR(
     params["useInexactObj"] = False
     params["useInexactGrad"] = False
 
-    x_opt, cnt = trustregion(x0, delta0, problem, params)
+    x_opt, cnt, best_x = trustregion(x0, delta0, problem, params)
     return x_opt, cnt, problem, X, Y, xy, g_d, f_rhs
 
 
