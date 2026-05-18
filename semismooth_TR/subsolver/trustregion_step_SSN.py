@@ -2,7 +2,7 @@
 
 import numpy as np
 import torch
-from semismooth_TR.trust_region import compute_gradient
+from semismooth_TR.compute_gradient import compute_gradient
 
 def _vec_from_flat(template, flat_data):
     out = template.zero_like()
