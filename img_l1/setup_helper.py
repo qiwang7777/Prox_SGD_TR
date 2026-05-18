@@ -8,6 +8,17 @@ from semismooth_TR.TorchVector import TorchDictVector
 import matplotlib.pyplot as plt
 import numpy as np
 
+torch.set_default_dtype(torch.float64)
+plt.rcParams.update({
+    "text.usetex": False,
+    "font.family": "serif",
+    "font.serif": ["DejaVu Serif"],
+    "font.size": 14,
+    "axes.labelsize": 14,
+    "axes.titlesize": 14,
+    "legend.fontsize": 12,
+})
+
 def make_initial_guess(n, device="cpu", mode="data", b=None):
     if mode == "zeros":
         img = torch.zeros((n, n), dtype=torch.float64, device=device)
