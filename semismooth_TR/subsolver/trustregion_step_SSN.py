@@ -206,13 +206,13 @@ def ssn_linesearch(
     max_ls = params["ssn_bt_maxit"]
 
     gTs = problem.pvector.dot(dgrad, s)
+    u_a, u_b = problem.obj_nonsmooth.get_parameter()
 
     for _ in range(max_ls):
         xtrial = x + alpha * s
 
-        # keep same nonsmooth-object style as NCG
-        xtrial = problem.obj_nonsmooth.prox(xtrial, 1.0)
-        cnt["nprox"] = cnt.get("nprox", 0) + 1
+        xtrial = _vec_from_data(x, torch.clamp(xtrial.data,min=u_a,max=u_b))
+                                                
 
         val_trial, _ = problem.obj_smooth.value(xtrial, 1e-12)
         cnt["nobj1"] = cnt.get("nobj1", 0) + 1
@@ -226,7 +226,7 @@ def ssn_linesearch(
         alpha *= bt
 
     xtrial = x + alpha * s
-    xtrial = problem.obj_nonsmooth.prox(xtrial, 1.0)
+    xtrial = _vec_from_data(x, torch.clamp(xtrial.data,min=u_a,max=u_b))
     cnt["nprox"] = cnt.get("nprox", 0) + 1
 
     val_trial, _ = problem.obj_smooth.value(xtrial, 1e-12)
