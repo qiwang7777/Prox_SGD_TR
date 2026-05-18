@@ -1,6 +1,6 @@
 import torch
 from collections import OrderedDict
-from semismooth_TR.TorchDictVector import TorchDictVector
+from semismooth_TR.TorchVector import TorchDictVector
 
 class L1TorchNorm:
     """
