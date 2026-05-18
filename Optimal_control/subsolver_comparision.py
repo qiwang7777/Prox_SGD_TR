@@ -95,6 +95,12 @@ def solve_once(
         params["ssn_cg_maxit"] = 40
         params["ssn_tol"] = 1e-10
 
+    if spsolver.upper() == "DOGLEG":
+        params["dogleg_reg"] = 1e-8
+        params["dogleg_cg_tol"] = 1e-8
+        params["dogleg_cg_maxit"] = 40
+        params["dogleg_active_tol"] = 1e-12
+
     t0 = time.time()
     x_opt, cnt, best_x = trustregion(x0, delta0, problem, params)
     elapsed = time.time() - t0
@@ -120,7 +126,7 @@ def solve_once(
 
 
 def compare_solvers(
-    solvers=("NCG", "SPG2", "SSN"),
+    solvers=("NCG", "SPG2", "SSN", "DOGLEG"),
     ngrid=64,
     alpha=1e-2,
     u_a=-0.5,
