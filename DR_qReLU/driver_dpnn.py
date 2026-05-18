@@ -8,7 +8,7 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    width, depth, ngrid = 32, 2, 64
+    width, depth, ngrid = 16, 2, 64
     beta = 1e-6
     model = PoissonNet(width = width, depth = depth).to(device)
     xy = make_training_points_grid(ngrid, device = device)
