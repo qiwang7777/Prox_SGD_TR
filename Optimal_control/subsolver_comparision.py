@@ -81,6 +81,13 @@ def solve_once(
     params["useInexactGrad"] = False
     params["debug"] = False
 
+    if spsolver.upper() == "NCG":
+        params["maxitsp"] = 3
+        params["maxitdbls"] = 1
+        params["atol"] = 1e-4
+        params["rtol"] = 1e-2
+        params["spexp"] = 1
+
     if spsolver.upper() == "SSN":
         params["ssn_maxit"] = 1
         params["ssn_reg"] = 1e-6
