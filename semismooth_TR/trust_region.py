@@ -184,7 +184,7 @@ def trustregion(x0, Deltai, problem, params):
             cnt['iflag'] = 6
             print("Optimization terminated because predicted reduction is tiny repeatedly.")
             print(f"Total time: {cnt['timetotal']:8.6e} seconds")
-            return x, cnt
+            return x, cnt, best_x
 
         xnew = x + s
 
