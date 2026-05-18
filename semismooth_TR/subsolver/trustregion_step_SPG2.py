@@ -10,6 +10,7 @@ def trustregion_gcp2(x, val, grad, dgrad, phi, problem, params, cnt):
     params.setdefault('gradTol', np.sqrt(np.finfo(float).eps))
 
     Hg, _ = problem.obj_smooth.hessVec(grad, x, params['gradTol'])
+    cnt["nhess"] = cnt.get("nhess",0) + 1
     gHg = problem.dvector.apply(Hg, grad)
     gg = problem.pvector.dot(grad, grad)
 
@@ -26,6 +27,7 @@ def trustregion_gcp2(x, val, grad, dgrad, phi, problem, params, cnt):
     snorm = problem.pvector.norm(s)
 
     Hs, _ = problem.obj_smooth.hessVec(s, x, params['gradTol'])
+    cnt["nhess"] = cnt.get("nhess", 0) + 1
     sHs = problem.dvector.apply(Hs, s)
     gs = problem.pvector.dot(grad, s)
 
@@ -99,9 +101,11 @@ def trustregion_step_SPG2(x, val, grad, dgrad, phi, problem, params, cnt):
             alphamax = np.minimum(1, (-ds + np.sqrt(ds ** 2 + dd * (params['delta'] ** 2 - snorm0 ** 2))) / dd)
 
         Hs, _ = problem.obj_smooth.hessVec(s, x, params['gradTol'])
+        cnt["nhess"] = cnt.get("nhess", 0 )+1
         sHs = problem.dvector.apply(Hs, s)
         g0s = problem.pvector.dot(g0_primal, s)
         phinew = problem.obj_nonsmooth.value(x1)
+        cnt["nobj2"]=cnt.get("nobj2",0)+1
         alpha0 = -(g0s + phinew - phiold) / sHs
 
         if (not np.isfinite(sHs)) or (sHs <= 1e-14):
@@ -123,6 +127,7 @@ def trustregion_step_SPG2(x, val, grad, dgrad, phi, problem, params, cnt):
             g0_primal += alpha * problem.dvector.dual(Hs)
             valnew = valold + alpha * g0s + 0.5 * alpha ** 2 * sHs
             phinew = problem.obj_nonsmooth.value(x0)
+            cnt["nobj2"] = cnt.get("nobj2",0)+1
             snorm = problem.pvector.norm(x0 - x)
 
         valold = valnew
