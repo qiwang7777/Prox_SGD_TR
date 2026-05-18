@@ -4,6 +4,7 @@ import copy
 import time
 from .subsolver.trustregion_step_NCG import trustregion_step_NCG
 from .subsolver.trustregion_step_SPG2 import trustregion_step_SPG2
+from .subsolver.trustregion_step_SSN import trustregion_step_SSN
 from collections import deque
 
 def trustregion(x0, Deltai, problem, params):
@@ -156,10 +157,15 @@ def trustregion(x0, Deltai, problem, params):
             s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SPG2(
                 x, val_model, grad, dgrad, phi, problem, params, cnt
             )
-        else:
+        elif params.get('spsolver', 'NCG').upper() == 'NCG':
             s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_NCG(
                 x, val_model, dgrad, phi, problem, params, cnt
             )
+        else:
+            s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SSN(
+                x, val_model, dgrad, phi, problem, params, cnt
+            )
+            
 
         pRed = float(pRed)
         pred_floor = max(
