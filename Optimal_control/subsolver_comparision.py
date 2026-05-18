@@ -245,7 +245,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     table, results = compare_solvers(
-        solvers=("NCG", "SPG2", "SSN"),
+        solvers=("NCG", "SPG2", "SSN","DOGLEG"),
         ngrid=64,
         alpha=1e-2,
         u_a=-0.5,
