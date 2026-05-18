@@ -1,4 +1,4 @@
-
+import torch
 def directional_fd_value(obj, theta, v, eps):
     th_p = theta.copy()
     th_m = theta.copy()
