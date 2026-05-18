@@ -97,6 +97,8 @@ def train_poisson_with_TR(
         wb=None,
         bc_target = None,
         lam_bc=0.0,
+        x_true = True,
+        u_true_fn = u_star,
     )
     obj_smooth.set_hess_mode("full")
     obj_nonsmooth = L1TorchNorm(var)
@@ -125,11 +127,11 @@ def train_poisson_with_TR(
     params["rej_max_stuck_at_floor"] = 10
 
     # run TR
-    x_opt, cnt = trustregion(x0, delta0, problem, params)
+    x_opt, cnt, best_x = trustregion(x0, delta0, problem, params)
 
     # load optimum back into model
     load_vector_into_model(x_opt, model)
-    return model, x_opt, cnt
+    return model, x_opt, cnt, best_x
 
 
 
