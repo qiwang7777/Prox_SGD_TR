@@ -6,7 +6,7 @@ from semismooth_TR.compute_gradient import compute_gradient
 
 def _vec_from_flat(template, flat_data):
     out = template.zero_like()
-    out.data = flat_data.clone().reshape_as(out.data)
+    out.data = flat_data.clone().reshape(-1,1)
     return out
 
 
