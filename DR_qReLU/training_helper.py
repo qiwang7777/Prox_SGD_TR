@@ -10,6 +10,15 @@ from img_l1.DictEuclidean import L2TVDual, L2TVPrimal
 from semismooth_TR.set_default_parameters import set_default_parameters
 from semismooth_TR.trust_region import trustregion
 
+plt.rcParams.update({
+    "text.usetex": False,
+    "font.family": "serif",
+    "font.serif": ["DejaVu Serif"],
+    "font.size": 14,
+    "axes.labelsize": 14,
+    "axes.titlesize": 14,
+    "legend.fontsize": 12,
+})
 
 def make_training_points_grid(n=32, device="cpu", dtype=None):
     if dtype is None:
