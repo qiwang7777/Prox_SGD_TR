@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import OrderedDict
-from semismooth_TR.TorchDictVector import TorchDictVector
+from semismooth_TR.TorchVector import TorchDictVector
 from .Poisson_obj import u_star, PoissonCompositeObjective
 from .qReLU_NN import PoissonNet
 from .L1torch import L1TorchNorm
