@@ -76,7 +76,7 @@ def solve_once(
     params["spsolver"] = spsolver
     params["delta"] = delta0
     params["maxit"] = maxit
-    params["gtol"] = 1e-7
+    params["gtol"] = 1e-6
     params["useInexactObj"] = False
     params["useInexactGrad"] = False
     params["debug"] = False
