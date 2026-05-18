@@ -30,7 +30,7 @@ class PoissonCompositeObjective:
     """
 
     def __init__(self, model, xy, g, kappa_fn, weight=None, device="cpu", mu_I=0.0,
-                 xb=None, wb=None, bc_target=None, lam_bc=0.0):
+                 xb=None, wb=None, bc_target=None, lam_bc=0.0, x_true=None, u_true_fn=None):
         self.model = model.to(device)
         self.xy = xy.to(device)
         self.g = g.to(device)
@@ -41,6 +41,10 @@ class PoissonCompositeObjective:
         self.bc_target = bc_target.to(device) if bc_target is not None else None
         self.lam_bc = float(lam_bc)
         self.hess_mode = "full"
+        self.mu_I = float(mu_I)
+        self._last_theta = None
+        self.x_true = x_true
+        self.u_true_fn = u_true_fn
             
 
         # quadrature weights
@@ -52,8 +56,7 @@ class PoissonCompositeObjective:
                 w = torch.tensor(w, dtype=self.xy.dtype, device=device)
             self.weight = w.to(device)
 
-        self.mu_I = float(mu_I)
-        self._last_theta = None
+
 
     def set_mu_I(self, mu_I: float):
         self.mu_I = float(mu_I)
@@ -66,6 +69,12 @@ class PoissonCompositeObjective:
     def update(self, theta, flag: str):
         
         self._last_theta = None
+        if hasattr(self, "xy_full"):
+            self.xy=self.xy_full
+        if hasattr(self,"g_full"):
+            self.g = self.g_full
+        if hasattr(self,"weight_full"):
+            self.weight = self.weight_full
 
     # ---------------- helpers ----------------
     @torch.no_grad()
@@ -280,17 +289,22 @@ class PoissonCompositeObjective:
         using uniform grid quadrature
 
         """
+        if self.u_true_fn is None:
+            return np.inf
         self._set_parameters(theta)
         with torch.no_grad():
             xy = self.xy
             u_pred = self.model(xy)
             u_true = u_star(xy)
-            N = xy.shape[0]
-            n_side = int(N ** 0.5)
-            h = 1.0 / (n_side-1)
-            weight = h * h
-            err_sq = weight * torch.sum((u_pred-u_true)**2)
-            true_sq = weight * torch.sum(u_true ** 2)
-            rel_L2 = torch.sqrt(err_sq / true_sq)
-        return rel_L2.item()
+            if self.weight is None:
+                err_sq = torch.mean((u_pred-u_true)**2)
+                true_sq = torch.mean(u_true**2)
+            else:
+                w = self.weight
+                if w.ndim == 1:
+                    w = w.reshape(-1,1)
+                err_sq = torch.sum(w*(u_pred-u_true)**2)
+                true_sq = torch.sum(w*u_true**2)
+          
+        return torch.sqrt(err_sq/true_sq).item()
     
