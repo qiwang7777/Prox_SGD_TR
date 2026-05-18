@@ -252,20 +252,18 @@ def plot_tr_performance(cnt, use_log=True):
     fig, axes = plt.subplots(1, 3, figsize=(16, 4), sharex=True)
 
     axes[0].plot(it, obj,  markersize=3)
-    axes[0].set_ylabel("Objective")
+    
     axes[0].set_title("Objective")
     axes[0].set_xlabel("iter")
     axes[0].grid(False)
 
     axes[1].plot(it, gnorm,  markersize=3)
-    axes[1].set_ylabel("Prox. grad. norm")
+    
     axes[1].set_title("prox-gradient norm")
     axes[1].set_xlabel("iter")
     axes[1].grid(False)
 
     axes[2].plot(it, delta, markersize=3)
-    axes[2].set_ylabel("TR radius")
-    axes[2].set_xlabel("Iteration")
     axes[2].set_title("TR radius")
     axes[2].set_xlabel("iter")
     axes[2].grid(False)
