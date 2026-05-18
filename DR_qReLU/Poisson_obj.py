@@ -2,7 +2,7 @@ import torch
 from torch.func import functional_call, grad, jvp, vjp, vmap
 from collections import OrderedDict
 import math
-from semismooth_TR.TorchDictVector import TorchDictVector
+from semismooth_TR.TorchVector import TorchDictVector
 
 # --- boundary factor for homogeneous Dirichlet ---
 def b_factor(xy: torch.Tensor) -> torch.Tensor:
