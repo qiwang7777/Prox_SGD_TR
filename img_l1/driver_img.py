@@ -9,11 +9,18 @@ if __name__ == "__main__":
     device = "cpu"
 
     # A stable first run:
-    n = 64
+    n = 64 
     sigma = 0.25
     kernel_size = 3
     noise_level = 0.015 #0.025 will lead to objective stagnation
     lam = 5.88e-3
+    # for making the plot in higher fidelity 
+    #n=256
+    #sigma = 1
+    #kernel_size=7
+    #noise_level=0.02
+    #lam = 6e-3
+    
 
     #x_true, b, x0, problem = build_tv_saturation_problem(
     #    n=n,
@@ -51,16 +58,16 @@ if __name__ == "__main__":
         "useGCP": True,
         "maxit": 5000,
         "delta": 1.0,
-        "gtol": 1e-7,
+        "gtol": 1e-7,#with n=256, "gtol": 1e-4
         "ocScale": 1.0,
         "eta1": 1e-4,
         "eta2": 0.5,
         "gamma1": 0.5,
         "gamma2": 1.5,
-        "maxitsp": 20,
-        "pred_abs_tol": 1e-12,
-        "pred_rel_tol": 1e-12,
-        "pred_small_max": 5,
+        "maxitsp": 20, #50
+        "pred_abs_tol": 1e-12, #1e-10
+        "pred_rel_tol": 1e-12, #1e-8
+        "pred_small_max": 5, #20
         "outFreq": 1,
         "useInexactGrad": False,
     }
