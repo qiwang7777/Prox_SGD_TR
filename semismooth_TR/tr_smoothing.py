@@ -178,6 +178,7 @@ def trustregion(x0, Deltai, problem, params):
         cnt['nobj1'] += 1
 
         solver = params.get('spsolver', 'SPG2').upper()
+        delta_old = params['delta']
 
         if solver == 'SPG2':
             s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SPG2(
@@ -242,7 +243,8 @@ def trustregion(x0, Deltai, problem, params):
             "gradtype=", params.get("grad_type", "---"),
             "mu=", params.get("active_mu_smooth", None),
         )
-        boundary_ratio = snorm/max(params["delta"],1e-300)
+        
+        boundary_ratio = snorm/max(delta_old,1e-300)
         boundary_active = boundary_ratio >= params.get("boundary_tol",0.8)
 
         if not accept:
