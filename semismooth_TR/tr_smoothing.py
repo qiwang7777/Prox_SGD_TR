@@ -54,7 +54,7 @@ def trustregion(x0, Deltai, problem, params):
     # Smoothing controls
     params.setdefault("use_smoothing_at_deltamin", True)
     params.setdefault("mu_smooth", 1e-4)
-    params.setdefault("deltamin", 9e-3)
+    
     params.setdefault("delta_floor", 1e-14)
 
     cnt = {
