@@ -275,10 +275,7 @@ def trustregion(x0, Deltai, problem, params):
                 cnt["best_iter"] = i
 
             if rho <= params['eta2']:
-                params['delta'] = max(
-                    params['deltamin'],
-                    params['delta']
-                )
+                params['delta'] = params['delta']
             else:
                 if boundary_active:
                     params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*params["delta"]))
