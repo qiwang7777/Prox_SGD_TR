@@ -4,13 +4,17 @@ import matplotlib.pyplot as plt
 
 from semismooth_TR.tr_smoothing import trustregion
 
-from .obstacle_oc_obj import ObstacleControlObjective, BoxL1Norm
+from .obstacle_oc_obj import (
+    ObstacleControlObjective,
+    BoxL1Norm,
+    make_control_vector,
+)
 from .smoothing_assistant import SmoothingAssistant
 
 
 class L2Vector:
     def norm(self, x):
-        return torch.norm(x)
+        return torch.norm(x.td["u"])
 
     def dual(self, x):
         return x
@@ -45,8 +49,8 @@ def train_obstacle_oc_with_TR(
         umax=5.0,
     )
 
-    def f_smooth(u, mu):
-        return obj_smooth.value_smooth_torch(u, mu)
+    def f_smooth(x, mu):
+        return obj_smooth.value_smooth_torch(x, mu)
 
     obj_smooth.attach_smoother(
         SmoothingAssistant(f_smooth)
@@ -58,8 +62,8 @@ def train_obstacle_oc_with_TR(
     problem.pvector = L2Vector()
     problem.dvector = L2Vector()
 
-    u0 = torch.zeros(
-        (n * n, 1),
+    x0 = make_control_vector(
+        n=n,
         device=device,
         dtype=torch.get_default_dtype(),
     )
@@ -94,17 +98,19 @@ def train_obstacle_oc_with_TR(
         "stag_window": 20,
         "ftol_rel": 1e-8,
         "max_reject": 20,
+        "reltol": False,
     }
 
-    u_opt, cnt, best_u = trustregion(u0, delta0, problem, params)
+    x_opt, cnt, best_x = trustregion(x0, delta0, problem, params)
 
-    return obj_smooth, u_opt, cnt, best_u
+    return obj_smooth, x_opt, cnt, best_x
 
 
-def plot_obstacle_oc(obj, u):
-    y, yd, psi = obj.plot_arrays(u)
+def plot_obstacle_oc(obj, x):
+    y, yd, psi = obj.plot_arrays(x)
 
     n = obj.n
+
     X = obj.xy[:, 0].detach().cpu().numpy().reshape(n, n)
     Y = obj.xy[:, 1].detach().cpu().numpy().reshape(n, n)
 
@@ -113,8 +119,9 @@ def plot_obstacle_oc(obj, u):
     psi = psi.detach().cpu().numpy().reshape(n, n)
 
     violation = np.maximum(psi - y, 0.0)
+    u = x.td["u"].detach().cpu().numpy().reshape(n, n)
 
-    fig, axes = plt.subplots(1, 4, figsize=(20, 4), constrained_layout=True)
+    fig, axes = plt.subplots(1, 5, figsize=(24, 4), constrained_layout=True)
 
     im0 = axes[0].pcolormesh(X, Y, y, shading="auto")
     axes[0].set_title("state y")
@@ -132,6 +139,10 @@ def plot_obstacle_oc(obj, u):
     axes[3].set_title("max(psi - y, 0)")
     fig.colorbar(im3, ax=axes[3])
 
+    im4 = axes[4].pcolormesh(X, Y, u, shading="auto")
+    axes[4].set_title("control u")
+    fig.colorbar(im4, ax=axes[4])
+
     plt.show()
 
 
@@ -143,20 +154,24 @@ def plot_tr_history(cnt):
 
     fig, axes = plt.subplots(1, 4, figsize=(20, 4), constrained_layout=True)
 
-    axes[0].plot(obj)
-    axes[0].set_title("Objective")
-    axes[0].set_xlabel("iter")
+    if len(obj) > 0:
+        axes[0].plot(obj)
+        axes[0].set_title("Objective")
+        axes[0].set_xlabel("iter")
 
-    axes[1].semilogy(gnm)
-    axes[1].set_title("prox-gradient norm")
-    axes[1].set_xlabel("iter")
+    if len(gnm) > 0:
+        axes[1].semilogy(gnm)
+        axes[1].set_title("prox-gradient norm")
+        axes[1].set_xlabel("iter")
 
-    axes[2].semilogy(delt)
-    axes[2].set_title("Delta")
-    axes[2].set_xlabel("iter")
+    if len(delt) > 0:
+        axes[2].semilogy(delt)
+        axes[2].set_title("Delta")
+        axes[2].set_xlabel("iter")
 
-    axes[3].semilogy(snm)
-    axes[3].set_title("step norm")
-    axes[3].set_xlabel("iter")
+    if len(snm) > 0:
+        axes[3].semilogy(snm)
+        axes[3].set_title("step norm")
+        axes[3].set_xlabel("iter")
 
     plt.show()
