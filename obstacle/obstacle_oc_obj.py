@@ -289,6 +289,9 @@ class ObstacleControlObjective:
     def attach_smoother(self, smoother):
         self.smoother = smoother
 
+    def update(self, x, flag=None):
+        pass
+
     def value_smooth(self, x, mu, tol=1e-12):
         if not hasattr(self, "smoother"):
             raise RuntimeError("No smoother has been attached.")
