@@ -54,6 +54,7 @@ def trustregion(x0, Deltai, problem, params):
     # Smoothing controls
     params.setdefault("use_smoothing_at_deltamin", True)
     params.setdefault("mu_smooth", 1e-4)
+    params.setdefault("delta_smooth_exit", 5e-4)
     
     params.setdefault("delta_floor", 1e-14)
 
@@ -357,7 +358,19 @@ def trustregion(x0, Deltai, problem, params):
 def compute_gradient(x, problem, params, cnt):
     gtol = 1e-12
 
-    use_smoothing = (params.get("use_smoothing_at_deltamin", True) and params["delta"] < params["deltamin"])
+    if (
+        params.get("use_smoothing_at_deltamin", True)
+        and params["delta"] < params["deltamin"]
+    ):
+        params["smooth_mode"] = True
+
+    if (
+        params.get("smooth_mode", False)
+        and params["delta"] >= params.get("delta_smooth_exit", 5.0 * params["deltamin"])
+    ):
+        params["smooth_mode"] = False
+
+    use_smoothing = params.get("smooth_mode", False)
 
     if use_smoothing:
         mu = params["mu_smooth"]
