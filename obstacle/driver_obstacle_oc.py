@@ -21,7 +21,7 @@ if __name__ == "__main__":
         maxit=1000,
         device=device,
         mu_smooth=1e-6,
-        deltamin=1e-6,
+        deltamin=1e-5,
         deltamax=10.0,
     )
 
