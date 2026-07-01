@@ -129,7 +129,7 @@ def train_poisson_with_TR(
         z=obj_smooth._pack_f(grad_u,u)
         return obj_smooth.h(z)
     
-    obj_smooth.attachsmoother(SmoothingAssistant(f_smooth))
+    obj_smooth.attach_smoother(SmoothingAssistant(f_smooth))
 
     class _ProblemWrap:
         pass
