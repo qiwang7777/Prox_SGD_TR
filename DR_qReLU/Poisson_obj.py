@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch.func import functional_call, grad, jvp, vjp, vmap
 from collections import OrderedDict
 import math
@@ -30,7 +31,7 @@ class PoissonCompositeObjective:
     """
 
     def __init__(self, model, xy, g, kappa_fn, weight=None, device="cpu", mu_I=0.0,
-                 xb=None, wb=None, bc_target=None, lam_bc=0.0):
+                 xb=None, wb=None, bc_target=None, lam_bc=0.0, x_true=None,u_true_fn=None):
         self.model = model.to(device)
         self.xy = xy.to(device)
         self.g = g.to(device)
@@ -41,6 +42,8 @@ class PoissonCompositeObjective:
         self.bc_target = bc_target.to(device) if bc_target is not None else None
         self.lam_bc = float(lam_bc)
         self.hess_mode = "full"
+        self.x_true=x_true
+        self.u_true_fn=u_true_fn
             
 
         # quadrature weights
@@ -66,6 +69,12 @@ class PoissonCompositeObjective:
     def update(self, theta, flag: str):
         
         self._last_theta = None
+        if hasattr(self, "xy_full"):
+            self.xy=self.xy_full
+        if hasattr(self,"g_full"):
+            self.g = self.g_full
+        if hasattr(self,"weight_full"):
+            self.weight = self.weight_full
 
     # ---------------- helpers ----------------
     @torch.no_grad()
@@ -91,6 +100,9 @@ class PoissonCompositeObjective:
         Returns z = [vec(grad u); vec(u)] computed in a functorch-safe way.
 
         """
+
+       
+        
         
         xy = self.xy  # (N,2) already a tensor; no requires_grad_ mutation
         buffers = dict(self.model.named_buffers())
@@ -299,6 +311,8 @@ class PoissonCompositeObjective:
         using uniform grid quadrature
 
         """
+        if self.u_true_fn is None:
+            return np.inf
         self._set_parameters(theta)
         with torch.no_grad():
             xy = self.xy
@@ -312,5 +326,4 @@ class PoissonCompositeObjective:
             true_sq = weight * torch.sum(u_true ** 2)
             rel_L2 = torch.sqrt(err_sq / true_sq)
         return rel_L2.item()
-    
     
