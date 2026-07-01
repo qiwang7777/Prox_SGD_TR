@@ -55,6 +55,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault("use_smoothing_at_deltamin", True)
     params.setdefault("mu_smooth", 1e-4)
     params.setdefault("deltamin", 9e-3)
+    params.setdefault("delta_floor", 1e-14)
 
     cnt = {
         'AlgType': f"TR-{params.get('spsolver', 'SPG2')}",
@@ -242,7 +243,7 @@ def trustregion(x0, Deltai, problem, params):
 
         if not accept:
             params['delta'] = max(
-                params['deltamin'],
+                params['delta_floor'],
                 params['gamma1'] * params['delta']
             )
 
@@ -356,10 +357,7 @@ def trustregion(x0, Deltai, problem, params):
 def compute_gradient(x, problem, params, cnt):
     gtol = 1e-12
 
-    use_smoothing = (
-        params.get("use_smoothing_at_deltamin", True)
-        and params["delta"] <= params["deltamin"]
-    )
+    use_smoothing = (params.get("use_smoothing_at_deltamin", True) and params["delta"] < params["deltamin"])
 
     if use_smoothing:
         mu = params["mu_smooth"]
