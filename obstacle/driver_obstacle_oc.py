@@ -18,7 +18,7 @@ if __name__ == "__main__":
         beta=1e-7,
         gamma=100,
         delta0=1.0,
-        maxit=400,
+        maxit=800,
         device=device,
         mu_smooth=1e-6,
         deltamin=1e-5,
