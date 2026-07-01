@@ -16,6 +16,12 @@ class L2Vector:
     def norm(self, x):
         return torch.norm(x.td["u"])
 
+    def inner(self, x, y):
+        return torch.sum(x.td["u"] * y.td["u"])
+
+    def apply(self, x, y):
+        return torch.sum(x.td["u"] * y.td["u"])
+
     def dual(self, x):
         return x
 
