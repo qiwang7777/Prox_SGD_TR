@@ -55,6 +55,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault("use_smoothing_at_deltamin", True)
     params.setdefault("mu_smooth", 1e-4)
     params.setdefault("delta_smooth_exit", 5e-4)
+    params.setdefault("boundary_tol", 0.8)
     
     params.setdefault("delta_floor", 1e-14)
 
@@ -241,6 +242,8 @@ def trustregion(x0, Deltai, problem, params):
             "gradtype=", params.get("grad_type", "---"),
             "mu=", params.get("active_mu_smooth", None),
         )
+        boundary_ratio = snorm/max(params["delta"],1e-300)
+        boundary_active = boundary_ratio >= params.get("boundary_tol",0.8)
 
         if not accept:
             params['delta'] = max(
@@ -277,10 +280,11 @@ def trustregion(x0, Deltai, problem, params):
                     params['delta']
                 )
             else:
-                params['delta'] = min(
-                    params['deltamax'],
-                    max(params['deltamin'], params['gamma2'] * params['delta'])
-                )
+                if boundary_active:
+                    params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*params["delta"])
+                else:
+                    params["delta"]=max(params["deltamin"],params["delta"])
+                                          
 
         if i % params['outFreq'] == 0:
             print(
