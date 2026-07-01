@@ -20,8 +20,8 @@ if __name__ == "__main__":
         delta0=1.0,
         maxit=300,
         device=device,
-        mu_smooth=1e-4,
-        deltamin=1e-4,
+        mu_smooth=1e-6,
+        deltamin=1e-6,
         deltamax=10.0,
     )
 
