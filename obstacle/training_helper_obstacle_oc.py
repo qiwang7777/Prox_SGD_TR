@@ -86,7 +86,7 @@ def train_obstacle_oc_with_TR(
         "eta1": 0.1,
         "eta2": 0.75,
         "gamma1": 0.5,
-        "gamma2": 2.0,
+        "gamma2": 1.2,
         "gtol": 1e-6,
         "stol": 1e-10,
         "ocScale": 1.0,
