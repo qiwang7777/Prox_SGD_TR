@@ -38,7 +38,7 @@ def psi_fun(xy):
     x = xy[:, 0:1]
     y = xy[:, 1:2]
 
-    return 0.05 * torch.exp(-40.0 * ((x - 0.5)**2 + (y - 0.5)**2))
+    return 0.08 * torch.exp(-40.0 * ((x - 0.5)**2 + (y - 0.5)**2))
 
 
 
@@ -46,7 +46,7 @@ def yd_fun(xy):
     x = xy[:, 0:1]
     y = xy[:, 1:2]
 
-    return 0.05 * torch.exp(-40.0 * ((x - 0.5)**2 + (y - 0.5)**2))
+    return -0.12 * torch.exp(-30.0 * ((x - 0.5)**2 + (y - 0.5)**2))
 
 
 
