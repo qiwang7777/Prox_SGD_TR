@@ -100,7 +100,7 @@ if __name__ == "__main__":
         # smoothing parameters
         use_smoothing_at_deltamin=True,
         mu_smooth=1e-4,
-        deltamin=9e-3,
+        delta_min=1e-4,
     )
 
     plot_solution_and_error(model, n=121, device=device)
