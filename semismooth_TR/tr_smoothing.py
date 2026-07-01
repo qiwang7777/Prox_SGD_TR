@@ -281,7 +281,7 @@ def trustregion(x0, Deltai, problem, params):
                 )
             else:
                 if boundary_active:
-                    params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*params["delta"])
+                    params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*params["delta"]))
                 else:
                     params["delta"]=max(params["deltamin"],params["delta"])
                                           
