@@ -28,32 +28,62 @@ def make_control_vector(n, device="cpu", dtype=None):
     return TorchDictVector(td)
 
 
-def get_u(x):
-    if isinstance(x, TorchDictVector):
-        return x.td["u"]
-    return x
-
-
 def psi_fun(xy):
+    return torch.zeros_like(xy[:, 0:1])
+
+
+def y_dagger_fun(xy):
     x = xy[:, 0:1]
     y = xy[:, 1:2]
 
-    bump1 = 0.10 * torch.exp(-60.0 * ((x - 0.30)**2 + (y - 0.35)**2))
-    bump2 = 0.08 * torch.exp(-80.0 * ((x - 0.70)**2 + (y - 0.65)**2))
-    ridge = 0.04 * torch.exp(-120.0 * (y - 0.50 - 0.15 * torch.sin(2.0 * torch.pi * x))**2)
+    z1 = x**3 - x**2 + 0.25 * x
+    z2 = y**3 - y**2 + 0.25 * y
 
-    return bump1 + bump2 + ridge
+    inside = (x > 0.0) & (x < 0.5) & (y > 0.0) & (y < 0.5)
+    return torch.where(inside, 1600.0 * z1 * z2, torch.zeros_like(x))
 
 
-def yd_fun(xy):
+def xi_dagger_fun(xy):
+    x = xy[:, 0:1]
+    y = xy[:, 1:2]
+    return torch.relu(
+        -2.0 * torch.abs(x - 0.8)
+        -2.0 * torch.abs(x * y - 0.3)
+        + 0.5
+    )
+
+
+def lap_y_dagger_fun(xy):
     x = xy[:, 0:1]
     y = xy[:, 1:2]
 
-    negative_well = -0.18 * torch.exp(-35.0 * ((x - 0.50)**2 + (y - 0.50)**2))
-    positive_peak = 0.08 * torch.exp(-70.0 * ((x - 0.20)**2 + (y - 0.80)**2))
-    oscillation = 0.03 * torch.sin(3.0 * torch.pi * x) * torch.sin(2.0 * torch.pi * y)
+    z1 = x**3 - x**2 + 0.25 * x
+    z2 = y**3 - y**2 + 0.25 * y
 
-    return negative_well + positive_peak + oscillation
+    z1_xx = 6.0 * x - 2.0
+    z2_yy = 6.0 * y - 2.0
+
+    inside = (x > 0.0) & (x < 0.5) & (y > 0.0) & (y < 0.5)
+    lap = 1600.0 * (z1_xx * z2 + z1 * z2_yy)
+
+    return torch.where(inside, lap, torch.zeros_like(x))
+
+
+def yd_fun(xy, alpha=1.0):
+    ydag = y_dagger_fun(xy)
+    xi = xi_dagger_fun(xy)
+    lap_y = lap_y_dagger_fun(xy)
+    return ydag + xi - alpha * lap_y
+
+
+def f_fun(xy):
+    ydag = y_dagger_fun(xy)
+    xi = xi_dagger_fun(xy)
+    lap_y = lap_y_dagger_fun(xy)
+    return -lap_y - ydag - xi
+
+
+
 
 
 
