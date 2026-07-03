@@ -247,7 +247,7 @@ class ObstacleControlObjective:
 
         return grad_u.detach(), 0.0
 
-    def hessVec(self, x, v, tol=1e-12):
+    def hessVec(self, v, x, tol=1e-12):
         u = get_u(x)
         vu = get_u(v)
 
@@ -300,10 +300,10 @@ class ObstacleControlObjective:
             raise RuntimeError("No smoother has been attached.")
         return self.smoother.gradient(x, mu, tol)
 
-    def hessvec_smooth(self, x, v, mu, tol=1e-12):
+    def hessvec_smooth(self, v, x, mu, tol=1e-12):
         if not hasattr(self, "smoother"):
             raise RuntimeError("No smoother has been attached.")
-        return self.smoother.hessVec(x, v, mu, tol)
+        return self.smoother.hessVec(v, x, mu, tol)
 
     def relative_obstacle_violation(self, x):
         with torch.no_grad():
