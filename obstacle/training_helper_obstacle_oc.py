@@ -128,6 +128,8 @@ def plot_obstacle_oc(obj, x):
     psi = psi.detach().cpu().numpy().reshape(n, n)
 
     violation = np.maximum(psi - y, 0.0)
+    print(f"max obstacle violation = {violation.max():.3e}")
+    print(f"L2 obstacle violation  = {np.linalg.norm(violation):.3e}")
     u = x.td["u"].detach().cpu().numpy().reshape(n, n)
 
     fig, axes = plt.subplots(1, 5, figsize=(24, 4), constrained_layout=True)
@@ -144,7 +146,7 @@ def plot_obstacle_oc(obj, x):
     axes[2].set_title("obstacle psi")
     fig.colorbar(im2, ax=axes[2])
 
-    im3 = axes[3].pcolormesh(X, Y, violation, shading="auto")
+    im3 = axes[3].pcolormesh(X, Y, violation, shading="auto", vmin=0.0, vmax=1e-2,)
     axes[3].set_title("max(psi - y, 0)")
     fig.colorbar(im3, ax=axes[3])
 
