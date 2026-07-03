@@ -383,7 +383,7 @@ class ObstacleControlObjective:
             y=self.solve_state(x)
             err = torch.norm(y-self.yd)
             denom = torch.norm(self.yd)
-            denom = torch.clamp(denom,min=torch.tensor(1e-14,device=self.devie,dtype=self.dtype),)
+            denom = torch.clamp(denom,min=torch.tensor(1e-14,device=self.device,dtype=self.dtype),)
             return err/denom
 
     def plot_arrays(self, x):
