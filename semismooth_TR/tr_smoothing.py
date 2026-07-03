@@ -61,7 +61,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault("boundary_tol", 0.8)
     params.setdefult("smooth_mode",False)
     params.setdefault("small_step_ratio_tol",1e-1)
-    params.setdefault("small_step_ration_max",3)
+    params.setdefault("small_step_ratio_max",3)
     
     params.setdefault("delta_floor", 1e-14)
 
@@ -265,7 +265,7 @@ def trustregion(x0, Deltai, problem, params):
         if not accept:
             params['delta'] = max(
                 params['delta_floor'],
-                params['gamma1'] * params['delta']
+                params['gamma1'] * delta_old
             )
 
             obj.update(x, 'reject')
@@ -292,12 +292,12 @@ def trustregion(x0, Deltai, problem, params):
                 cnt["best_iter"] = i
 
             if rho <= params['eta2']:
-                params['delta'] = params['delta']
+                params['delta'] = delta_old
             else:
                 if boundary_active:
-                    params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*params["delta"]))
+                    params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*delta_old))
                 else:
-                    params["delta"]=max(params["deltamin"],params["delta"])
+                    params["delta"]=max(params["deltamin"],delta_old)
                                           
 
         if i % params['outFreq'] == 0:
