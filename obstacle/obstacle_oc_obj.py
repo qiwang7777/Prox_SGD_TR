@@ -378,7 +378,13 @@ class ObstacleControlObjective:
             return torch.norm(violation) / denom
 
     def relative_L2_error(self, x):
-        return self.relative_obstacle_violation(x)
+        #return self.relative_obstacle_violation(x)
+        with torch.no_grad():
+            y=self.solve_state(x)
+            err = torch.norm(y-slef.yd)
+            denom = torch.norm(self.yd)
+            denom = torch.clamp(denom,min=torch.tensor(1e-14,device=self.devie,dtype=self.dtype),)
+            return err/denom
 
     def plot_arrays(self, x):
         with torch.no_grad():
