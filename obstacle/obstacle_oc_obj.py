@@ -87,6 +87,27 @@ def f_fun(xy):
 
 
 
+def maxeps_pos(z, eps):
+    """
+    C^2 smoothing of max(0,z):
+
+        0,                              z <= 0
+        z^3/eps^2 - z^4/(2 eps^3),      0 < z < eps
+        z - eps/2,                      z >= eps
+    """
+    zero = torch.zeros_like(z)
+
+    return torch.where(
+        z <= 0,
+        zero,
+        torch.where(
+            z >= eps,
+            z - 0.5 * eps,
+            z**3 / eps**2 - z**4 / (2.0 * eps**3),
+        ),
+    )
+
+
 def softplus_mu(z, mu):
     return mu * torch.nn.functional.softplus(z / mu)
 
