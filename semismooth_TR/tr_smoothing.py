@@ -59,6 +59,9 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault("mu_factor",1.0)
     params.setdefault("delta_smooth_exit", 5e-4)
     params.setdefault("boundary_tol", 0.8)
+    params.setdefult("smooth_mode",False)
+    params.setdefault("small_step_ratio_tol",1e-1)
+    params.setdefault("small_step_ration_max",3)
     
     params.setdefault("delta_floor", 1e-14)
 
@@ -115,6 +118,7 @@ def trustregion(x0, Deltai, problem, params):
 
     rej_count = 0
     small_pred_count = 0
+    small_step_ratio_count = 0
 
     val_true, _ = obj.value(x, 1e-12)
     cnt['nobj1'] += 1
@@ -199,6 +203,14 @@ def trustregion(x0, Deltai, problem, params):
             s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_DOGLEG(
                 x, val_model, dgrad, phi, problem, params, cnt
             )
+
+        step_ratio = snorm/max(float(gnorm), 1e-300)
+        if step_ratio<params["small_step_ratio_tol"] and gnorm>gtol:
+            small_step_ratio_count += 1
+        else:
+            small_step_ratio_count = 0
+        if small_step_ratio_count >= params['small_step_ratio_max']:
+            params["smooth_mode"]=True
 
         pRed = float(pRed)
 
