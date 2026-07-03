@@ -2,6 +2,27 @@ import torch
 from collections import OrderedDict
 from semismooth_TR.TorchVector import TorchDictVector
 
+#def psi_fun(xy):
+#    x = xy[:, 0:1]
+#    y = xy[:, 1:2]
+
+#    bump1 = 0.10 * torch.exp(-60.0 * ((x - 0.30)**2 + (y - 0.35)**2))
+#    bump2 = 0.08 * torch.exp(-80.0 * ((x - 0.70)**2 + (y - 0.65)**2))
+#    ridge = 0.04 * torch.exp(-120.0 * (y - 0.50 - 0.15 * torch.sin(2.0 * torch.pi * x))**2)
+
+#    return bump1 + bump2 + ridge
+
+
+#def yd_fun(xy):
+#    x = xy[:, 0:1]
+#    y = xy[:, 1:2]
+
+#    negative_well = -0.18 * torch.exp(-35.0 * ((x - 0.50)**2 + (y - 0.50)**2))
+#    positive_peak = 0.08 * torch.exp(-70.0 * ((x - 0.20)**2 + (y - 0.80)**2))
+#    oscillation = 0.03 * torch.sin(3.0 * torch.pi * x) * torch.sin(2.0 * torch.pi * y)
+
+#    return negative_well + positive_peak + oscillation
+
 def get_u(x):
     if isinstance(x, TorchDictVector):
         return x.td["u"]
@@ -270,6 +291,7 @@ class ObstacleControlObjective:
 
         violation = self.psi - y
         smooth_violation = maxeps_pos(violation, mu)
+        #smooth_violation = softplus_mu(violation, mu)
 
         obstacle = 0.5 * self.gamma * self.weight * torch.sum(
             smooth_violation ** 2
