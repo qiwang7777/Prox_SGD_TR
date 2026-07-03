@@ -11,7 +11,15 @@ from .obstacle_oc_obj import (
 )
 from .smoothing_assistant import SmoothingAssistant
 
-
+plt.rcParams.update({
+    "text.usetex": False,
+    "font.family": "serif",
+    "font.serif": ["DejaVu Serif"],
+    "font.size": 14,
+    "axes.labelsize": 14,
+    "axes.titlesize": 14,
+    "legend.fontsize": 12,
+})
 class ZeroNonsmooth:
     def __init__(self, var=None):
         self.var = var or {}
