@@ -22,7 +22,7 @@ if __name__ == "__main__":
         device=device,
         mu_smooth=1e-6,
         deltamin=1e-5,
-        deltamax=10.0,
+        deltamax=1e4,
     )
 
     print("Final obstacle violation:", obj.relative_obstacle_violation(u_opt).item())
