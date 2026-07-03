@@ -265,7 +265,7 @@ class ObstacleControlObjective:
         control = 0.5 * self.alpha * self.weight * torch.sum(u ** 2)
 
         violation = self.psi - y
-        smooth_violation = softplus_mu(violation, mu)
+        smooth_violation = maxeps_pos(violation, mu)
 
         obstacle = 0.5 * self.gamma * self.weight * torch.sum(
             smooth_violation ** 2
