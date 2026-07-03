@@ -59,7 +59,7 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault("mu_factor",1.0)
     params.setdefault("delta_smooth_exit", 5e-4)
     params.setdefault("boundary_tol", 0.8)
-    params.setdefult("smooth_mode",False)
+    params.setdefault("smooth_mode",False)
     params.setdefault("small_step_ratio_tol",1e-1)
     params.setdefault("small_step_ratio_max",3)
     
