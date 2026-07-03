@@ -381,7 +381,7 @@ class ObstacleControlObjective:
         #return self.relative_obstacle_violation(x)
         with torch.no_grad():
             y=self.solve_state(x)
-            err = torch.norm(y-slef.yd)
+            err = torch.norm(y-self.yd)
             denom = torch.norm(self.yd)
             denom = torch.clamp(denom,min=torch.tensor(1e-14,device=self.devie,dtype=self.dtype),)
             return err/denom
