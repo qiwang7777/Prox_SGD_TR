@@ -54,7 +54,7 @@ def train_obstacle_oc_with_TR(
     device="cpu",
     mu_smooth=1e-4,
     deltamin=1e-4,
-    deltamax=10.0,
+    deltamax=1e4,
 ):
     obj_smooth = ObstacleControlObjective(
         n=n,
