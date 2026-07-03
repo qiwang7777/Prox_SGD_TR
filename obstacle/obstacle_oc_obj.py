@@ -2,7 +2,11 @@ import torch
 from collections import OrderedDict
 from semismooth_TR.TorchVector import TorchDictVector
 
-
+def get_u(x):
+    if isinstance(x, TorchDictVector):
+        return x.td["u"]
+    return x
+    
 def make_grid(n=64, device="cpu", dtype=None):
     if dtype is None:
         dtype = torch.get_default_dtype()
