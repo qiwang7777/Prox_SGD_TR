@@ -37,7 +37,7 @@ def train_obstacle_oc_with_TR(
     n=64,
     alpha=1e-3,
     beta=1e-5,
-    gamma=1e2,
+    gamma=1e4,
     delta0=1.0,
     maxit=300,
     device="cpu",
