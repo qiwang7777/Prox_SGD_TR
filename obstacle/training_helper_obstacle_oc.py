@@ -12,6 +12,17 @@ from .obstacle_oc_obj import (
 from .smoothing_assistant import SmoothingAssistant
 
 
+class ZeroNonsmooth:
+    def __init__(self, var=None):
+        self.var = var or {}
+
+    def value(self, x):
+        return 0.0
+
+    def prox(self, x, t):
+        return x.copy()
+        
+
 class L2Vector:
     def norm(self, x):
         return torch.norm(x.td["u"])
@@ -52,11 +63,12 @@ def train_obstacle_oc_with_TR(
         device=device,
     )
 
-    obj_nonsmooth = BoxL1Norm(
-        beta=beta,
-        umin=-5.0,
-        umax=5.0,
-    )
+    #obj_nonsmooth = BoxL1Norm(
+    #    beta=beta,
+    #    umin=-5.0,
+    #    umax=5.0,
+    #)
+    obj_nonsmooth = ZeroNonsmooth(var)
 
     def f_smooth(x, mu):
         return obj_smooth.value_smooth_torch(x, mu)
