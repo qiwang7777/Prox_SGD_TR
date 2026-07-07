@@ -71,12 +71,12 @@ def train_obstacle_oc_with_TR(
         device=device,
     )
 
-    #obj_nonsmooth = BoxL1Norm(
-    #    beta=beta,
-    #    umin=-5.0,
-    #    umax=5.0,
-    #)
-    obj_nonsmooth = ZeroNonsmooth(vars)
+    obj_nonsmooth = BoxL1Norm(
+        beta=beta,
+        umin=-5.0,
+        umax=5.0,
+    )
+    #obj_nonsmooth = ZeroNonsmooth(vars)
 
     def f_smooth(x, mu):
         return obj_smooth.value_smooth_torch(x, mu)
