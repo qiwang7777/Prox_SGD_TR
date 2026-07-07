@@ -42,7 +42,7 @@ class SmoothingAssistant:
 
         return TorchDictVector(grad_td), 0.0
 
-    def hessvec(self, x, v, mu, tol=1e-12):
+    def hessVec(self, x, v, mu, tol=1e-12):
         td = OrderedDict()
 
         for k, p in x.td.items():
