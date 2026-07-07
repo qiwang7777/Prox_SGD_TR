@@ -2,31 +2,31 @@ import torch
 from collections import OrderedDict
 from semismooth_TR.TorchVector import TorchDictVector
 
-#def psi_fun(xy):
-#    x = xy[:, 0:1]
-#    y = xy[:, 1:2]
+def psi_fun(xy):
+    x = xy[:, 0:1]
+    y = xy[:, 1:2]
 
-#    bump1 = 0.10 * torch.exp(-60.0 * ((x - 0.30)**2 + (y - 0.35)**2))
-#    bump2 = 0.08 * torch.exp(-80.0 * ((x - 0.70)**2 + (y - 0.65)**2))
-#    ridge = 0.04 * torch.exp(-120.0 * (y - 0.50 - 0.15 * torch.sin(2.0 * torch.pi * x))**2)
+    bump1 = 0.10 * torch.exp(-60.0 * ((x - 0.30)**2 + (y - 0.35)**2))
+    bump2 = 0.08 * torch.exp(-80.0 * ((x - 0.70)**2 + (y - 0.65)**2))
+    ridge = 0.04 * torch.exp(-120.0 * (y - 0.50 - 0.15 * torch.sin(2.0 * torch.pi * x))**2)
 
-#    return bump1 + bump2 + ridge
+    return bump1 + bump2 + ridge
 
 
-#def yd_fun(xy):
-#    x = xy[:, 0:1]
-#    y = xy[:, 1:2]
+def yd_fun(xy):
+    x = xy[:, 0:1]
+    y = xy[:, 1:2]
 
-#    negative_well = -0.18 * torch.exp(-35.0 * ((x - 0.50)**2 + (y - 0.50)**2))
-#    positive_peak = 0.08 * torch.exp(-70.0 * ((x - 0.20)**2 + (y - 0.80)**2))
-#    oscillation = 0.03 * torch.sin(3.0 * torch.pi * x) * torch.sin(2.0 * torch.pi * y)
+    negative_well = -0.18 * torch.exp(-35.0 * ((x - 0.50)**2 + (y - 0.50)**2))
+    positive_peak = 0.08 * torch.exp(-70.0 * ((x - 0.20)**2 + (y - 0.80)**2))
+    oscillation = 0.03 * torch.sin(3.0 * torch.pi * x) * torch.sin(2.0 * torch.pi * y)
 
-#    return negative_well + positive_peak + oscillation
+    return negative_well + positive_peak + oscillation
 
-def get_u(x):
-    if isinstance(x, TorchDictVector):
-        return x.td["u"]
-    return x
+#def get_u(x):
+#    if isinstance(x, TorchDictVector):
+#        return x.td["u"]
+#    return x
     
 def make_grid(n=64, device="cpu", dtype=None):
     if dtype is None:
@@ -53,8 +53,8 @@ def make_control_vector(n, device="cpu", dtype=None):
     return TorchDictVector(td)
 
 
-def psi_fun(xy):
-    return torch.zeros_like(xy[:, 0:1])
+#def psi_fun(xy):
+#    return torch.zeros_like(xy[:, 0:1])
 
 
 def y_dagger_fun(xy):
@@ -94,11 +94,11 @@ def lap_y_dagger_fun(xy):
     return torch.where(inside, lap, torch.zeros_like(x))
 
 
-def yd_fun(xy, alpha=1.0):
-    ydag = y_dagger_fun(xy)
-    xi = xi_dagger_fun(xy)
-    lap_y = lap_y_dagger_fun(xy)
-    return ydag + xi - alpha * lap_y
+#def yd_fun(xy, alpha=1.0):
+#    ydag = y_dagger_fun(xy)
+#    xi = xi_dagger_fun(xy)
+#    lap_y = lap_y_dagger_fun(xy)
+#    return ydag + xi - alpha * lap_y
 
 
 def f_fun(xy):
@@ -400,13 +400,13 @@ class ObstacleControlObjective:
             return torch.norm(violation) / denom
 
     def relative_L2_error(self, x):
-        #return self.relative_obstacle_violation(x)
-        with torch.no_grad():
-            y=self.solve_state(x)
-            err = torch.norm(y-self.yd)
-            denom = torch.norm(self.yd)
-            denom = torch.clamp(denom,min=torch.tensor(1e-14,device=self.device,dtype=self.dtype),)
-            return err/denom
+        return self.relative_obstacle_violation(x)
+        #with torch.no_grad():
+        #    y=self.solve_state(x)
+        #    err = torch.norm(y-self.yd)
+        #    denom = torch.norm(self.yd)
+        #    denom = torch.clamp(denom,min=torch.tensor(1e-14,device=self.device,dtype=self.dtype),)
+        #    return err/denom
 
     def plot_arrays(self, x):
         with torch.no_grad():
