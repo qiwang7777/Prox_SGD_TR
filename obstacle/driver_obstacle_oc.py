@@ -15,7 +15,7 @@ if __name__ == "__main__":
     obj, u_opt, cnt, best_u = train_obstacle_oc_with_TR(
         n=64,
         alpha=1e-4,
-        beta=1e-7,
+        beta=1e-6,
         gamma=1e5,
         delta0=1.0,
         maxit=800,
