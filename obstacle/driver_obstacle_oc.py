@@ -16,7 +16,7 @@ if __name__ == "__main__":
         n=64,
         alpha=1e-4,
         beta=1e-7,
-        gamma=1e5,
+        gamma=1e6,
         delta0=1.0,
         maxit=800,
         device=device,
