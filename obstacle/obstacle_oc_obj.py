@@ -23,10 +23,10 @@ def yd_fun(xy):
 
     return negative_well + positive_peak + oscillation
 
-#def get_u(x):
-#    if isinstance(x, TorchDictVector):
-#        return x.td["u"]
-#    return x
+def get_u(x):
+    if isinstance(x, TorchDictVector):
+        return x.td["u"]
+    return x
     
 def make_grid(n=64, device="cpu", dtype=None):
     if dtype is None:
