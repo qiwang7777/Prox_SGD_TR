@@ -9,17 +9,17 @@ if __name__ == "__main__":
     device = "cpu"
 
     # A stable first run:
-    n = 64 
-    sigma = 0.25
-    kernel_size = 3
-    noise_level = 0.015 #0.025 will lead to objective stagnation
-    lam = 5.88e-3
+    #n = 64 
+    #sigma = 0.25
+    #kernel_size = 3
+    #noise_level = 0.015 #0.025 will lead to objective stagnation
+    #lam = 5.88e-3
     # for making the plot in higher fidelity 
-    #n=256
-    #sigma = 1
-    #kernel_size=7
-    #noise_level=0.02
-    #lam = 6e-3
+    n=256
+    sigma = 1
+    kernel_size=7
+    noise_level=0.02
+    lam = 6e-3
     
 
     #x_true, b, x0, problem = build_tv_saturation_problem_smoothing(
