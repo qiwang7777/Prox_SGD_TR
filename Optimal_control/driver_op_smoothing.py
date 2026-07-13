@@ -252,7 +252,7 @@ if __name__ == "__main__":
     print("\n==== HESSIAN CHECK at x0 ====")
     hv_check(obj_smooth, x0, ntests=3)
 
-    x_opt, cnt, problem, X, Y, xy, g_d, f_rhs = solve_optimal_control_with_TR(
+    x_opt, cnt, problem, X, Y, xy, g_d, f_rhs = solve_optimal_control_with_TR_smoothing(
         ngrid=ngrid,
         alpha=alpha,
         u_a=u_a,
