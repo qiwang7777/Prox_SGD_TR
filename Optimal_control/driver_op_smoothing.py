@@ -5,7 +5,7 @@ from semismooth_TR.derivative_check import grad_check, hv_check
 from .sampling import make_training_points_grid,interior_mask_2d
 from .pde_solver import desired_state, y_star, f_source, u_star
 from .Reduced_obj import ReducedSemilinearControlObjective
-from .Reduced_obj_smoothing import ReducedSemilinearControlObjectiveSmoothing
+from .Reduced_obj_smoothing import SmoothedReducedSemilinearControlObjective
 from .Indicator import IndicatorBox
 from .Problem_wrapper import Problem
 from .ControlVector import ControlVector
@@ -50,7 +50,7 @@ def solve_optimal_control_with_TR_smoothing(
         "u_b": u_b,
     }
 
-    obj_smooth = ReducedSemilinearControlObjectiveSmoothing(
+    obj_smooth = SmoothedReducedSemilinearControlObjective(
         xy=xy,
         g_d=g_d,
         y_true = y_true,
