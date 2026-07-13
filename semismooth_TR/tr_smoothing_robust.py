@@ -357,6 +357,20 @@ def trustregion(x0, Deltai, problem, params):
 
         stop_maxit = i >= params["maxit"]
 
+        # Before terminating because of objective stagnation, try one
+        # smoothed recovery phase if the stationarity measure is still large.
+        if (stop_stag and gnorm > gtol and params.get("grad_type") != "smooth"):
+            params["smooth_mode"] = True
+  
+            # Reset the stagnation history so that the algorithm is given
+            # a fresh window after switching to the smoothed model.
+            Facc.clear()
+            Facc.append(val_true + phi)
+
+            print("Objective stagnation detected while stationarity remains non-negligible; " "switching to smoothing.")
+            continue
+        
+
         if stop_grad or stop_step or stop_stag or stop_stuck or stop_maxit:
             if stop_grad:
                 flag = 0
