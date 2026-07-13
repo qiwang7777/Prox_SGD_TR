@@ -10,33 +10,26 @@ from .pde_solver import (
 )
 
 
+import torch
+import torch.nn.functional as F
+
+
 def eval_N_and_dNdy_smooth(y: torch.Tensor, mu: float):
     """
-    Huber smoothing of N(y) = max(0, y).
+    Smooth approximation of N(y) = ReLU(y):
 
-    N_mu(y) =
-        0,                  y <= 0,
-        y^2 / (2 mu),       0 < y < mu,
-        y - mu / 2,         y >= mu.
-
-    N_mu'(y) = clip(y / mu, 0, 1).
+        N_mu(y) = mu * log(1 + exp(y / mu)),
+        N_mu'(y) = sigmoid(y / mu).
     """
     if mu <= 0.0:
-        raise ValueError("The smoothing parameter mu must be positive.")
+        raise ValueError("mu must be positive.")
 
     mu_t = torch.as_tensor(mu, dtype=y.dtype, device=y.device)
 
-    Nval = torch.where(
-        y <= 0.0,
-        torch.zeros_like(y),
-        torch.where(
-            y < mu_t,
-            y.square() / (2.0 * mu_t),
-            y - 0.5 * mu_t,
-        ),
-    )
+    # Numerically stable softplus implementation
+    Nval = mu_t * F.softplus(y / mu_t)
+    dNdy = torch.sigmoid(y / mu_t)
 
-    dNdy = torch.clamp(y / mu_t, min=0.0, max=1.0)
     return Nval, dNdy
 
 
