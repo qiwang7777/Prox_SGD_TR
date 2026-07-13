@@ -29,7 +29,7 @@ plt.rcParams.update({
 
 def solve_once(
     spsolver,
-    ngrid=64,
+    ngrid=96,#64,
     alpha=1e-2,
     u_a=-0.5,
     u_b=0.5,
@@ -127,7 +127,7 @@ def solve_once(
 
 def compare_solvers(
     solvers=("NCG", "SPG2", "SSN", "DOGLEG"),
-    ngrid=64,
+    ngrid=96,#64,
     alpha=1e-2,
     u_a=-0.5,
     u_b=0.5,
@@ -246,7 +246,7 @@ if __name__ == "__main__":
 
     table, results = compare_solvers(
         solvers=("NCG", "SPG2", "SSN","DOGLEG"),
-        ngrid=64,
+        ngrid=96,#64,
         alpha=1e-2,
         u_a=-0.5,
         u_b=0.5,
