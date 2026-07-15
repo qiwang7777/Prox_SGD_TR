@@ -67,8 +67,34 @@ class SparseReLUOperatorObjective:
         self.G = torch.exp(-(diff * diff) / (2.0 * self.sigma * self.sigma))
 
         self.hess_mode = "full"
-        self.x_true = False
+        self.x_true = None
         self._last_Ku = None
+
+    @torch.no_grad()
+    def relative_L2_error(self, x):
+        """
+        Compatibility hook used by semismooth_TR.trust_region.
+
+        If no reference solution is supplied, return infinity.  If x_true is
+        a GridVector or tensor, compute the weighted relative L2 error.
+        """
+        if self.x_true is None:
+            return float("inf")
+
+        true_data = (
+            self.x_true.data
+            if hasattr(self.x_true, "data")
+            else self.x_true
+        )
+        diff = x.data - true_data
+        numerator = torch.sqrt(self.weight * torch.sum(diff * diff))
+        denominator = torch.sqrt(self.weight * torch.sum(true_data * true_data))
+
+        denom = float(denominator.item())
+        if denom == 0.0:
+            return float(numerator.item())
+        return float((numerator / denominator).item())
+
 
     def set_mu_I(self, mu_I: float):
         # Kept for compatibility with the existing TR code.
