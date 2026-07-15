@@ -105,23 +105,23 @@ def plot_solution(problem, x_opt, X, Y, g):
     predn = prediction.detach().cpu().numpy()
     gn = g.reshape(n, n).detach().cpu().numpy()
 
-    fig, axes = plt.subplots(2, 2, figsize=(13, 10), constrained_layout=True)
+    fig, axes = plt.subplots(1, 4, figsize=(18, 4.5), constrained_layout=True)
 
-    im0 = axes[0, 0].pcolormesh(Xn, Yn, gn, shading="auto")
-    axes[0, 0].set_title("target $g$")
+    im0 = axes[0].pcolormesh(Xn, Yn, gn, shading="auto")
+    axes[0].set_title("target $g$")
     fig.colorbar(im0, ax=axes[0, 0])
 
-    im1 = axes[0, 1].pcolormesh(Xn, Yn, predn, shading="auto")
-    axes[0, 1].set_title(r"$\operatorname{ReLU}(Ku)$")
+    im1 = axes[1].pcolormesh(Xn, Yn, predn, shading="auto")
+    axes[1].set_title(r"$\operatorname{ReLU}(Ku)$")
     fig.colorbar(im1, ax=axes[0, 1])
 
-    im2 = axes[1, 0].pcolormesh(Xn, Yn, un, shading="auto")
-    axes[1, 0].set_title("recovered sparse control $u$")
+    im2 = axes[2].pcolormesh(Xn, Yn, un, shading="auto")
+    axes[2].set_title("recovered sparse control $u$")
     fig.colorbar(im2, ax=axes[1, 0])
 
-    im3 = axes[1, 1].pcolormesh(Xn, Yn, Kun, shading="auto")
-    axes[1, 1].contour(Xn, Yn, Kun, levels=[0.0], linewidths=1.5)
-    axes[1, 1].set_title("$Ku$ with ReLU interface")
+    im3 = axes[3].pcolormesh(Xn, Yn, Kun, shading="auto")
+    axes[3].contour(Xn, Yn, Kun, levels=[0.0], linewidths=1.5)
+    axes[3].set_title("$Ku$ with ReLU interface")
     fig.colorbar(im3, ax=axes[1, 1])
 
     for ax in axes.ravel():
