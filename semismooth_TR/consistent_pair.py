@@ -1,9 +1,5 @@
 """
 Consistent generalized-gradient / proximal-FCD step selection.
-
-Designed to plug into semismooth_TR/trust_region.py from
-https://github.com/qiwang7777/Prox_SGD_TR
-
 The inner iteration is
 
     J_r  ->  d_r = P_k(J_r)  ->  J_{r+1} in partial f(x_k + d_r),
@@ -45,7 +41,6 @@ class PairInfo:
 
 
 def _copy_vector(x: Any) -> Any:
-    """Copy a repository vector without assuming it is a NumPy array."""
     return x.copy() if hasattr(x, "copy") else copy.deepcopy(x)
 
 
@@ -77,10 +72,6 @@ def _generalized_gradient(
 def _dual_pairing(problem: Any, primal_grad: Any, primal_step: Any) -> float:
     """
     Compute <J,d>.
-
-    In this repository, gradients are stored in the primal representation,
-    so pvector.dot is the natural pairing. Change this adapter if your
-    generalized derivative is stored as a dual vector.
     """
     return float(problem.pvector.dot(primal_grad, primal_step))
 
