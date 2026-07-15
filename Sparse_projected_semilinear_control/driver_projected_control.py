@@ -17,7 +17,7 @@ def solve_projected_semilinear_control(ngrid=34,alpha=1e-4,beta=1e-7,a=0.0,b=0.4
     grid,X,Y,xy=make_interior_grid(ngrid,device=device)
     yd=desired_state(xy); A,h=build_negative_laplacian(ngrid,device=device)
     var={"useEuclidean":True,"beta":beta,"weight":h*h}
-    smooth=ProjectedSemilinearControlObjective(A,yd,alpha,a,b,h*h)
+    smooth=ProjectedSemilinearControlObjective(A,yd,alpha,a,b,h*h,xy=xy)
     problem=Problem(smooth,L1Penalty(var),var)
     x0=ControlVector(torch.zeros(((ngrid-2)**2,1),device=device))
     params=set_default_parameters("SPG2")
@@ -53,7 +53,7 @@ if __name__=="__main__":
     ngrid=34; alpha=1e-4; beta=1e-7; a=0.0; b=0.4
     _,X,Y,xy=make_interior_grid(ngrid,device=device)
     yd=desired_state(xy); A,h=build_negative_laplacian(ngrid,device=device)
-    test=ProjectedSemilinearControlObjective(A,yd,alpha,a,b,h*h)
+    test=ProjectedSemilinearControlObjective(A,yd,alpha,a,b,h*h,xy=xy)
     xt=ControlVector(1e-2*torch.randn(((ngrid-2)**2,1),device=device))
     print("\n==== GENERALIZED GRADIENT CHECK ===="); grad_check(test,xt,ntests=3)
     u,cnt,problem,X,Y,yd=solve_projected_semilinear_control(ngrid,alpha,beta,a,b,1.0,100,device)
