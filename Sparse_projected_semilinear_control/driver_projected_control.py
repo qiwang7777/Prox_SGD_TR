@@ -50,7 +50,7 @@ def plot_tr_history(cnt):
 
 if __name__=="__main__":
     device="cuda" if torch.cuda.is_available() else "cpu"
-    ngrid=34; alpha=1e-4; beta=1e-5; a=0.0; b=0.4
+    ngrid=34; alpha=1e-4; beta=1e-4; a=0.0; b=0.4
     _,X,Y,xy=make_interior_grid(ngrid,device=device)
     yd=desired_state(xy); A,h=build_negative_laplacian(ngrid,device=device)
     test=ProjectedSemilinearControlObjective(A,yd,alpha,a,b,h*h,xy=xy)
