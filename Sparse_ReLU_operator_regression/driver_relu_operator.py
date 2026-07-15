@@ -109,20 +109,20 @@ def plot_solution(problem, x_opt, X, Y, g):
 
     im0 = axes[0].pcolormesh(Xn, Yn, gn, shading="auto")
     axes[0].set_title("target $g$")
-    fig.colorbar(im0, ax=axes[0, 0])
+    fig.colorbar(im0, ax=axes[0])
 
     im1 = axes[1].pcolormesh(Xn, Yn, predn, shading="auto")
     axes[1].set_title(r"$\operatorname{ReLU}(Ku)$")
-    fig.colorbar(im1, ax=axes[0, 1])
+    fig.colorbar(im1, ax=axes[1])
 
     im2 = axes[2].pcolormesh(Xn, Yn, un, shading="auto")
     axes[2].set_title("recovered sparse control $u$")
-    fig.colorbar(im2, ax=axes[1, 0])
+    fig.colorbar(im2, ax=axes[2])
 
     im3 = axes[3].pcolormesh(Xn, Yn, Kun, shading="auto")
     axes[3].contour(Xn, Yn, Kun, levels=[0.0], linewidths=1.5)
     axes[3].set_title("$Ku$ with ReLU interface")
-    fig.colorbar(im3, ax=axes[1, 1])
+    fig.colorbar(im3, ax=axes[3])
 
     for ax in axes.ravel():
         ax.set_xlabel("$x_1$")
