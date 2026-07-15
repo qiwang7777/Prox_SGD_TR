@@ -186,18 +186,19 @@ class SparseReLUOperatorObjective:
         SPG2 is the recommended subproblem solver for this example, so this
         routine is mainly supplied for compatibility with NCG/SSN experiments.
         """
-        eps = self.fd_eps
-        xp = x.copy()
-        xm = x.copy()
-        xp.axpy(eps, v)
-        xm.axpy(-eps, v)
+        #eps = self.fd_eps
+        #xp = x.copy()
+        #xm = x.copy()
+        #xp.axpy(eps, v)
+        #xm.axpy(-eps, v)
 
-        gp, _ = self.gradient(xp, gradTol)
-        gm, _ = self.gradient(xm, gradTol)
-        hv = gp.copy()
-        hv.axpy(-1.0, gm)
-        hv.scal(1.0 / (2.0 * eps))
-        return hv, 0.0
+        #gp, _ = self.gradient(xp, gradTol)
+        #gm, _ = self.gradient(xm, gradTol)
+        #hv = gp.copy()
+        #hv.axpy(-1.0, gm)
+        #hv.scal(1.0 / (2.0 * eps))
+        #return hv, 0.0
+        return v.zero_like(), 0.0
 
     @torch.no_grad()
     def relu_active_fraction(self, x):
