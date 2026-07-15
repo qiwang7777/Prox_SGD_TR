@@ -3,9 +3,21 @@ from .ControlVector import ControlVector
 from .pde_solver import solve_state, solve_adjoint, solve_linearized_state
 
 class ProjectedSemilinearControlObjective:
-    def __init__(self,A,y_d,alpha=1e-4,a=0.0,b=0.4,weight=1.0,
-                 zero_selection=0.5,newton_tol=1e-10,newton_maxit=50):
-        self.A=A; self.y_d=y_d; self.alpha=float(alpha); self.a=float(a); self.b=float(b)
+    def __init__(self,
+                 A,
+                 y_d,
+                 alpha=1e-4,
+                 a=0.0,
+                 b=0.4,
+                 weight=1.0,
+                 xy=None,
+                 zero_selection=0.5,
+                 newton_tol=1e-10,
+                 newton_maxit=50):
+        self.A=A
+        self.y_d=y_d
+        self.xy=xy
+        self.alpha=float(alpha); self.a=float(a); self.b=float(b)
         self.weight=float(weight); self.zero_selection=float(zero_selection)
         self.newton_tol=float(newton_tol); self.newton_maxit=int(newton_maxit)
         self.x_true=None; self.hess_mode="gauss_newton"; self.mu_I=0.0
