@@ -181,10 +181,13 @@ class SparseReLUOperatorObjective:
 
     def hessVec(self, v, x, gradTol=1e-12):
         """
-        Finite-difference generalized-gradient action.
+        Active-set Gauss--Newton model operator
 
-        SPG2 is the recommended subproblem solver for this example, so this
-        routine is mainly supplied for compatibility with NCG/SSN experiments.
+        B_k v = w K^* D_k K v + alpha w v,
+
+        where w is the quadrature weight and D_k is a selected ReLU activity operator.
+
+        This operator is bounded, self-adjoint, and positive semidefinite.
         """
         #eps = self.fd_eps
         #xp = x.copy()
@@ -198,7 +201,14 @@ class SparseReLUOperatorObjective:
         #hv.axpy(-1.0, gm)
         #hv.scal(1.0 / (2.0 * eps))
         #return hv, 0.0
-        return v.zero_like(), 0.0
+        Ku = self.apply_K(x)
+        theta=self._theta(Ku)
+        Kv = self.apply_K(v)
+        DKv = theta*Kv
+        KtDKv = self.apply_K_adjoint(DKv)
+        hv_data = (self.weight * KtDKv + self.alpha *self.weight*v.data)
+        return GridVector(hv_data.detach().clone()),0.0
+        
 
     @torch.no_grad()
     def relu_active_fraction(self, x):
