@@ -308,7 +308,8 @@ def trustregion(x0, Deltai, problem, params):
                 if boundary_active:
                     params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*delta_old))
                 else:
-                    params["delta"] = max(params["deltamin"], delta_old)
+                    #params["delta"] = max(params["deltamin"], delta_old)
+                    params["delta"] = min(params["deltamax"], max(params["deltamin"],params["gamma2"]*delta_old))
 
             # Smoothing is used only as a local recovery mechanism.
             # After a successful smoothed step, return to the nonsmooth model.
