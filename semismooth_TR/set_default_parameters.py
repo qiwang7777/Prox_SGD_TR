@@ -26,7 +26,7 @@ def set_default_parameters(name):
     params['atol']    = 1e-5
     params['rtol']    = 1e-3
     params['spexp']   = 2
-    params['maxitsp'] = 50
+    params['maxitsp'] = 200
 
     params['useGCP']    = False
     params['mu1']       = 1e-4
