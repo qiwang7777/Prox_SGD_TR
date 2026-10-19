@@ -66,5 +66,19 @@ class PoissonNet(nn.Module):
         self.com = MLP(in_dim=in_dim, width=width, depth=depth, out_dim=1, activation=activation)
         #self.smooth_beta = 50.0
 
-    def forward(self, xy, smooth = False):
-        return b_factor(xy) * self.com(xy) 
+    def forward(self, xy, smooth = False, mu=None):
+        #return b_factor(xy) * self.com(xy)
+        if mu is None:
+            return b_factor(xy)*self.com(xy)
+        if mu<=0:
+            raise ValueError("mu must be positive")
+        z=xy
+        for layer in self.com.net:
+            if isinstance(layer, QuadracticReLU):
+                z = 0.5*(mu*torch.nn.functional.softplus(z/mu))**2
+            else:
+                z = layer(z)
+        return b_factor(xy)*z
+
+
+    
