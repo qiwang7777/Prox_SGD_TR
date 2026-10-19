@@ -8,6 +8,9 @@ from .subsolver.trustregion_step_NCG import trustregion_step_NCG
 from .subsolver.trustregion_step_SPG2 import trustregion_step_SPG2
 from .subsolver.trustregion_step_SSN import trustregion_step_SSN
 from .subsolver.trustregion_step_DOGLEG import trustregion_step_DOGLEG
+from .subsolver.trustregion_step_smoothed import (
+    trustregion_step_smoothed,
+)
 
 
 
@@ -187,7 +190,10 @@ def trustregion(x0, Deltai, problem, params):
         solver = params.get('spsolver', 'SPG2').upper()
         delta_old = params['delta']
 
-        if solver == 'SPG2':
+        if params.get("grad_type")=="smooth":
+            s, snorm, pRed, phinew, iflag, iter_count, cnt, params = (trustregion_step_smoothed(x, phi, problem, params, cnt))
+
+        elif solver == 'SPG2':
             s, snorm, pRed, phinew, iflag, iter_count, cnt, params = trustregion_step_SPG2(
                 x, val_model, grad, dgrad, phi, problem, params, cnt
             )
