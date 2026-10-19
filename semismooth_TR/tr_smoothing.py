@@ -65,6 +65,11 @@ def trustregion(x0, Deltai, problem, params):
     params.setdefault("smooth_mode",False)
     params.setdefault("small_step_ratio_tol",1e-1)
     params.setdefault("small_step_ratio_max",3)
+
+    #robustness step
+    params.setdefault("use_small_step_smoothing", True)
+    params.setdefault("small_step_smoothing_factor",0.1)
+    params.setdefault("nu",1.0)
     
     params.setdefault("delta_floor", 1e-14)
 
@@ -217,13 +222,20 @@ def trustregion(x0, Deltai, problem, params):
                 x, val_model, dgrad, phi, problem, params, cnt
             )
 
-        step_ratio = snorm/max(float(gnorm), 1e-300)
-        if step_ratio<params["small_step_ratio_tol"] and gnorm>gtol:
-            small_step_ratio_count += 1
-        else:
-            small_step_ratio_count = 0
-        if small_step_ratio_count >= params['small_step_ratio_max']:
-            params["smooth_mode"]=True
+        #step_ratio = snorm/max(float(gnorm), 1e-300)
+        #if step_ratio<params["small_step_ratio_tol"] and gnorm>gtol:
+        #    small_step_ratio_count += 1
+        #else:
+        #    small_step_ratio_count = 0
+        #if small_step_ratio_count >= params['small_step_ratio_max']:
+        #    params["smooth_mode"]=True
+        if (params["use_small_step_smoothing"] and params.get("grad_type")=="clarke" and gnorm>gtol):
+            threshold = params["small_step_smoothing_factor"]*min(params["deltamin"],params["nu"]*gnorm,)
+            if snorm<threshold:
+                nu = max(params["mu_min"], min(params["mu_smooth"], params["mu_factor"]*params["delta"]**params["mu_power"],),)
+                params["active_mu_smooth"]=mu
+                params["grad_type"]="smooth"
+                s, snorm, pRed, phinew, iflag, iter_count, cnt, params = (trustregion_step_smoothed(x, phi, problem, params, cnt))
 
         pRed = float(pRed)
 
