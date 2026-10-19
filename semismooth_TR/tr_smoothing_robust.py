@@ -120,6 +120,7 @@ def trustregion(x0, Deltai, problem, params):
         val_model = val_true
 
     grad, dgrad, gnorm, cnt = compute_gradient(x, problem, params, cnt)
+    gnorm_original, cnt = compute_original_residual(x, problem, params, cnt)
 
     phi = problem.obj_nonsmooth.value(x)
     cnt['nobj2'] += 1
@@ -134,7 +135,7 @@ def trustregion(x0, Deltai, problem, params):
         "nobjs    ngrad    nobjn    nprox     iterSP    flagSP    gradtype"
     )
     print(
-        f"{0:4d}    {val_true + phi:12.6e}    {gnorm:8.6e}    "
+        f"{0:4d}    {val_true + phi:12.6e}    {gnorm_original:8.6e}    "
         f"{params['delta']:8.6e}    ---      "
         f"{cnt['nobj1']:6d}    {cnt['ngrad']:6d}    "
         f"{cnt['nobj2']:6d}    {cnt['nprox']:6d}    "
@@ -144,7 +145,7 @@ def trustregion(x0, Deltai, problem, params):
     cnt['objhist'].append(val_true + phi)
     cnt['obj1hist'].append(val_true)
     cnt['obj2hist'].append(phi)
-    cnt['gnormhist'].append(gnorm)
+    cnt['gnormhist'].append(gnorm_original)
     cnt['snormhist'].append(np.nan)
     cnt['deltahist'].append(params['delta'])
     cnt['nobj1hist'].append(cnt['nobj1'])
@@ -315,11 +316,13 @@ def trustregion(x0, Deltai, problem, params):
             # After a successful smoothed step, return to the nonsmooth model.
             if params.get("grad_type") == "smooth":
                 params["smooth_mode"] = False
+
+        gnorm_original, cnt = compute_original_residual(x, problem, params, cnt)
                                           
 
         if i % params['outFreq'] == 0:
             print(
-                f"{i:4d}    {val_true + phi:12.6e}    {gnorm:8.6e}    "
+                f"{i:4d}    {val_true + phi:12.6e}    {gnorm_original:8.6e}    "
                 f"{params['delta']:8.6e}    {snorm:8.6e}    "
                 f"{cnt['nobj1']:6d}    {cnt['ngrad']:6d}    "
                 f"{cnt['nobj2']:6d}    {cnt['nprox']:6d}    "
@@ -330,7 +333,7 @@ def trustregion(x0, Deltai, problem, params):
         cnt['objhist'].append(val_true + phi)
         cnt['obj1hist'].append(val_true)
         cnt['obj2hist'].append(phi)
-        cnt['gnormhist'].append(gnorm)
+        cnt['gnormhist'].append(gnorm_original)
         cnt['snormhist'].append(snorm)
         cnt['deltahist'].append(params['delta'])
         cnt['nobj1hist'].append(cnt['nobj1'])
@@ -345,7 +348,7 @@ def trustregion(x0, Deltai, problem, params):
         ftol_rel = params["ftol_rel"]
         max_reject = params["max_reject"]
 
-        stop_grad = gnorm <= gtol
+        stop_grad = gnorm_original <= gtol
         stop_step = (snorm < stol_abs) and (params["delta"] <= delta_stop)
         stop_stuck = params["delta"] <= 10 * delta_stop and rej_count >= max_reject
 
@@ -403,7 +406,18 @@ def trustregion(x0, Deltai, problem, params):
 
     return x, cnt, best_x
 
+def compute_original_residual(x, problem, params, cnt):
+    g, _ = problem.obj_smooth.gradient(x, 1e-12)
+    cnt["ngrad"] += 1
 
+    g_primal = problem.dvector.dual(g)
+    r = params["ocScale"]
+
+    px = problem.obj_nonsmooth.prox(x - r * g_primal, r)
+    cnt["nprox"] += 1
+
+    residual = problem.pvector.norm(px - x) / r
+    return residual, cnt
 def compute_gradient(x, problem, params, cnt):
     gtol = 1e-12
 
