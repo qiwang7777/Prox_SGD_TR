@@ -10,6 +10,7 @@ from img_l1.DictEuclidean import L2TVDual, L2TVPrimal
 from semismooth_TR.set_default_parameters import set_default_parameters
 from semismooth_TR.tr_smoothing import trustregion
 from .f_smoothing import SmoothingAssistant
+from torch.func import functional_call
 plt.rcParams.update({
     "text.usetex": False,
     "font.family": "serif",
@@ -122,9 +123,10 @@ def train_poisson_with_TR(
     obj_nonsmooth = L1TorchNorm(var)
     
     def f_smooth(theta, mu):
-        obj_smooth._set_parameters(theta)
+        #obj_smooth._set_parameters(theta)
         xy_ad=obj_smooth.xy.detach().clone().requires_grad_(True)
-        u = obj_smooth.model.forward_smooth(xy_ad,mu=mu,smooth_activation=soft_qrelu,)
+        #u = obj_smooth.model.forward_smooth(xy_ad,mu=mu,smooth_activation=soft_qrelu,)
+        u = functional_call(obj_smooth.model, dict(theta.td),(xy_ad,),{"mu":mu},)
         grad_u = torch.autograd.grad(u.sum(),xy_ad,create_graph=True,)[0]
         z=obj_smooth._pack_f(grad_u,u)
         return obj_smooth.h(z)
