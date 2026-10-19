@@ -47,7 +47,7 @@ def trustregion(x0, Deltai, problem, params):
     # Smoothing controls
     params.setdefault("mu_smooth", 1e-4)
     params.setdefault("mu_min",1e-14)
-    params.setdefault("mu_power",1.0)
+    params.setdefault("mu_power",2.0)
     params.setdefault("mu_factor",1.0)
     params.setdefault("boundary_tol", 0.8)
     params.setdefault("smooth_mode",False)
