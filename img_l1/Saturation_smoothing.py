@@ -23,10 +23,13 @@ class SmoothedSaturationLeastSquares(SaturationLeastSquares):
 
         mu_t = torch.as_tensor(mu, dtype=z.dtype, device=z.device)
 
-        return mu_t * (
-            F.softplus(z / mu_t)
-            - F.softplus((z - 1.0) / mu_t)
-        )
+        #return mu_t * (
+        #    F.softplus(z / mu_t)
+        #    - F.softplus((z - 1.0) / mu_t)
+        #)
+        s = torch.clamp((z+mu_t)/(2.0*mu_t), min=0.0,max=1.0)
+        middle=mu_t*(2.0*s**3-s**4)
+        return torch.where(z<=-mu_t,torch.zeros_like(z),torch.where(z>=mu_t,z,middle))
 
     @staticmethod
     def dS_smooth(z: torch.Tensor, mu: float) -> torch.Tensor:
@@ -34,11 +37,13 @@ class SmoothedSaturationLeastSquares(SaturationLeastSquares):
             raise ValueError("mu must be positive.")
 
         mu_t = torch.as_tensor(mu, dtype=z.dtype, device=z.device)
+        s=torch.clamp((z+mu_t)/(2.0*mu_t),min=0.0,max=1.0)
+        return 3.0*s**2-2.0*s**3
 
-        return (
-            torch.sigmoid(z / mu_t)
-            - torch.sigmoid((z - 1.0) / mu_t)
-        )
+        #return (
+        #    torch.sigmoid(z / mu_t)
+        #    - torch.sigmoid((z - 1.0) / mu_t)
+        #)
 
     @staticmethod
     def ddS_smooth(z: torch.Tensor, mu: float) -> torch.Tensor:
@@ -47,13 +52,16 @@ class SmoothedSaturationLeastSquares(SaturationLeastSquares):
 
         mu_t = torch.as_tensor(mu, dtype=z.dtype, device=z.device)
 
-        sig0 = torch.sigmoid(z / mu_t)
-        sig1 = torch.sigmoid((z - 1.0) / mu_t)
+        s = torch.clamp((z+mu)/(2.0*mu),min=0.0,max=1.0)
 
-        return (
-            sig0 * (1.0 - sig0)
-            - sig1 * (1.0 - sig1)
-        ) / mu_t
+        #sig0 = torch.sigmoid(z / mu_t)
+        #sig1 = torch.sigmoid((z - 1.0) / mu_t)
+        return 3.0*s*(1.0-s)/mu_t
+
+        #return (
+        #    sig0 * (1.0 - sig0)
+        #    - sig1 * (1.0 - sig1)
+        #) / mu_t
 
     @torch.no_grad()
     def value_smooth(self, x, mu, tol=1e-12):
